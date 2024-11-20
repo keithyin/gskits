@@ -2,5 +2,13 @@
 name = "gskits"
 version = "0.1.0"
 edition = "2021"
+description = "common kits"
+license = "MIT"
+repository ="https://github.com/keithyin/gskits"
 
 [dependencies]
+rust-htslib = "0.47.0"
+anyhow = "1.0.93"
+indicatif= {version="0.17.7"}
+num_cpus="1.16"
+tracing = "0.1.40"
