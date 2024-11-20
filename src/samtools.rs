@@ -28,7 +28,10 @@ pub fn samtools_bai(bam_file: &str, force: bool, threads: Option<usize>) -> anyh
 
     if let Ok(res) = index_cmd.status() {
         if !res.success() {
-            return Err(anyhow!("Run cmd error, exit status not succ: {:?}", index_cmd));
+            return Err(anyhow!(
+                "Run cmd error, exit status not succ: {:?}",
+                index_cmd
+            ));
         }
     } else {
         return Err(anyhow!("Run cmd error: {:?}", index_cmd));
@@ -59,5 +62,4 @@ pub fn sort_by_coordinates(bam_file: &str, threads: Option<usize>) {
             String::from_utf8(oup.stderr).unwrap()
         );
     }
-
 }
