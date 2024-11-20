@@ -1,0 +1,1 @@
+pub mod bam_record_ext;
