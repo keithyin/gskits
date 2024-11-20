@@ -1,12 +1,10 @@
-
 use std::fmt::Display;
 
-use rust_htslib::bam::{self, ext::BamRecordExtensions, record::Cigar, Record};
+use rust_htslib::bam::{self, ext::BamRecordExtensions, record::Aux, record::Cigar, Record};
 
 pub type BamRecord = rust_htslib::bam::record::Record;
 pub type BamWriter = rust_htslib::bam::Writer;
 pub type BamReader = rust_htslib::bam::Reader;
-
 
 pub fn record2str(record: &Record) -> String {
     format!(
@@ -59,7 +57,6 @@ impl<'a> BamRecordExt<'a> {
     pub fn compute_query_coverage(&self) -> f32 {
         let mut seq_len = self.bam_record.seq_len_from_cigar(true);
         let aligned_span = self
-
             .bam_record
             .cigar()
             .iter()
@@ -98,11 +95,9 @@ impl<'a> BamRecordExt<'a> {
         unsafe { String::from_utf8_unchecked(self.bam_record.qname().to_vec()) }
     }
 
-
     pub fn get_ch(&self) -> Option<usize> {
         self.get_int(b"ch")
     }
-
 
     pub fn get_np(&self) -> Option<usize> {
         self.get_int(b"np")
@@ -118,7 +113,6 @@ impl<'a> BamRecordExt<'a> {
 
     pub fn get_rq(&self) -> Option<f32> {
         self.get_float(b"rq")
-
     }
 
     pub fn get_dw(&self) -> Option<Vec<usize>> {
@@ -130,47 +124,34 @@ impl<'a> BamRecordExt<'a> {
     }
 
     fn get_int(&self, tag: &[u8]) -> Option<usize> {
-        self.bam_record.aux(tag)
-            .ok()
-            .and_then(|aux| 
-                match aux {
-                    bam::record::Aux::I8(v) =>      Some(v as usize),
-                    bam::record::Aux::U8(v) =>      Some(v as usize),
-                    bam::record::Aux::I16(v) =>    Some(v as usize),
-                    bam::record::Aux::U16(v) =>    Some(v as usize),
-                    bam::record::Aux::I32(v) =>    Some(v as usize),
-                    bam::record::Aux::U32(v) =>    Some(v as usize),
-    
-                    _ => None,
-                }
-            )
+        self.bam_record.aux(tag).ok().and_then(|aux| match aux {
+            Aux::I8(v) => Some(v as usize),
+            Aux::U8(v) => Some(v as usize),
+            Aux::I16(v) => Some(v as usize),
+            Aux::U16(v) => Some(v as usize),
+            Aux::I32(v) => Some(v as usize),
+            Aux::U32(v) => Some(v as usize),
+
+            _ => None,
+        })
     }
 
     fn get_float(&self, tag: &[u8]) -> Option<f32> {
-        self.bam_record.aux(tag)
-            .ok()
-            .and_then(|aux| 
-                match aux {
-                    bam::record::Aux::Float(v) =>      Some(v as f32),
-                    bam::record::Aux::Double(v) =>      Some(v as f32),
-                    _ => None,
-                }
-            )
+        self.bam_record.aux(tag).ok().and_then(|aux| match aux {
+            Aux::Float(v) => Some(v as f32),
+            Aux::Double(v) => Some(v as f32),
+            _ => None,
+        })
     }
 
     fn get_uint_list(&self, tag: &[u8]) -> Option<Vec<usize>> {
-        self.bam_record.aux(tag)
-        .ok()
-        .and_then(|aux| 
-            match aux {
-                bam::record::Aux::ArrayU8(v) => Some(v.iter().map(|v| v as usize).collect::<Vec<usize>>()),
-                bam::record::Aux::ArrayU16(v) => Some(v.iter().map(|v| v as usize).collect::<Vec<usize>>()),
-                bam::record::Aux::ArrayU32(v) => Some(v.iter().map(|v| v as usize).collect::<Vec<usize>>()),
-                _ => None
-            }
-        )
+        self.bam_record.aux(tag).ok().and_then(|aux| match aux {
+            Aux::ArrayU8(v) => Some(v.iter().map(|v| v as usize).collect::<Vec<usize>>()),
+            Aux::ArrayU16(v) => Some(v.iter().map(|v| v as usize).collect::<Vec<usize>>()),
+            Aux::ArrayU32(v) => Some(v.iter().map(|v| v as usize).collect::<Vec<usize>>()),
+            _ => None,
+        })
     }
-    
 }
 
 impl<'a> Display for BamRecordExt<'a> {
