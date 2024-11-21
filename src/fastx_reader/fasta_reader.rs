@@ -3,7 +3,7 @@ use std::{
     io::{self, BufRead, BufReader},
 };
 
-use super::{fastx_header_line_to_header, ReadsInfo};
+use super::{fastx_header_line_to_header, ReadInfo};
 
 pub struct FastaFileReader {
     fname: String,
@@ -25,7 +25,7 @@ impl FastaFileReader {
 }
 
 impl Iterator for FastaFileReader {
-    type Item = ReadsInfo;
+    type Item = ReadInfo;
     fn next(&mut self) -> Option<Self::Item> {
         if self.lines.is_none() {
             let file = File::open(&self.fname).expect(&format!("open file error: {}", self.fname));
@@ -42,7 +42,7 @@ impl Iterator for FastaFileReader {
         }
 
         let mut fasta_record =
-            ReadsInfo::new_fa_record(self.current_header.take().unwrap(), String::new());
+            ReadInfo::new_fa_record(self.current_header.take().unwrap(), String::new());
 
         while let Some(line) = self.lines.as_mut().unwrap().next() {
             let line = line.unwrap();
@@ -51,7 +51,7 @@ impl Iterator for FastaFileReader {
                 return Some(fasta_record);
             }
 
-            fasta_record.sequence.push_str(line.trim());
+            fasta_record.seq.push_str(line.trim());
         }
 
         return Some(fasta_record);

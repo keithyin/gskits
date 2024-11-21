@@ -3,7 +3,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-use super::{fastx_header_line_to_header, ReadsInfo};
+use super::{fastx_header_line_to_header, ReadInfo};
 
 pub struct FastqReader {
     fname: String,
@@ -35,7 +35,7 @@ impl FastqReader {
 }
 
 impl Iterator for FastqReader {
-    type Item = ReadsInfo;
+    type Item = ReadInfo;
     fn next(&mut self) -> Option<Self::Item> {
         let header = self.read_one_line();
         if header.is_none() || header.as_ref().unwrap().trim().len() == 0 {
@@ -69,6 +69,6 @@ impl Iterator for FastqReader {
             .trim()
             .to_string();
 
-        Some(ReadsInfo::new_fq_record(header, seq, qual))
+        Some(ReadInfo::new_fq_record(header, seq, qual))
     }
 }
