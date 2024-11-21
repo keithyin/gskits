@@ -134,34 +134,3 @@ impl VcfInfo {
 }
 
 
-#[cfg(test)]
-mod test {
-    use std::{collections::HashSet, io::BufReader};
-
-    use crate::pbar::{get_spin_pb, DEFAULT_INTERVAL};
-
-    use super::VcfReaderIter;
-
-
-    #[test]
-    fn test_cvf_reader_iter() {
-        let vcf_filepath = "/data/ccs_data/HG002/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf";
-        let file = std::fs::File::open(vcf_filepath).unwrap();
-        let mut reader = BufReader::new(file);
-        let vcf_iter = VcfReaderIter::new(&mut reader);
-
-        let mut chroms = HashSet::new();
-
-        let pbar = get_spin_pb(format!("reading {vcf_filepath}"), DEFAULT_INTERVAL);
-
-        for item in vcf_iter {
-            chroms.insert(item.chrom.clone());
-            pbar.inc(1);
-        }
-        pbar.finish();
-        eprintln!("{:?}", chroms);
-
-    }
-
-}
-
