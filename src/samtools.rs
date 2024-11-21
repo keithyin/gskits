@@ -64,7 +64,8 @@ pub fn sort_by_coordinates(bam_file: &str, threads: Option<usize>) {
     }
 }
 
-pub fn sort_by_tag(bam_file: &str, tag: &str) -> String {
+pub fn sort_by_tag(bam_file: &str, tag: &str, threads: Option<usize>) -> String {
+    let threads = threads.unwrap_or(num_cpus::get_physical() / 2);
     let out_bam = format!(
         "{}.sort_by_{}.bam",
         bam_file.rsplit_once(".").unwrap().0,
@@ -80,7 +81,7 @@ pub fn sort_by_tag(bam_file: &str, tag: &str) -> String {
         "-o",
         out_bam.as_str(),
         "-@",
-        "40",
+        threads.to_string().as_str(),
         bam_file,
     ]);
 
