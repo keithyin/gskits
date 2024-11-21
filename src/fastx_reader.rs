@@ -2,6 +2,7 @@ use crate::{ds::ReadInfo, gsbam::bam_record_ext::{BamRecord, BamRecordExt}};
 
 pub mod fasta_reader;
 pub mod fastq_reader;
+pub mod fastx2bam;
 
 
 pub fn fastx_header_line_to_header(header_line: &str) -> String {
