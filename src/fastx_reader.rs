@@ -2,6 +2,7 @@ use crate::gsbam::bam_record_ext::{BamRecord, BamRecordExt};
 
 pub mod fasta_reader;
 pub mod fastq_reader;
+pub mod fastx2bam;
 
 /// 表示一个 FASTA 记录的结构体
 #[derive(Debug, PartialEq)]

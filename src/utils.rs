@@ -1,5 +1,7 @@
 use std::env;
 use std::{fmt::Debug, str::FromStr, time};
+use uuid::Uuid;
+use chrono::{Local, DateTime};
 
 pub fn command_line_str() -> String {
     let args: Vec<String> = env::args().collect();
@@ -133,6 +135,28 @@ impl<'a> Timer<'a> {
     }
 }
 
+
+
+
+
+
+// the generated filename will be fname-${uuid5}-
+pub fn generate_tmp_filename(fname: &str) -> String {
+    let now: DateTime<Local> = Local::now();
+
+    // 格式化为年-月-日 时:分:秒 的形式
+    let formatted_str = now.format("%Y-%m-%d %H:%M:%S").to_string();
+    let uuid_v5 = Uuid::new_v5(&Uuid::NAMESPACE_DNS, formatted_str.as_bytes());
+
+    return if fname.contains(".") {
+        let (prefix, suffix) = fname.rsplit_once(".").unwrap();
+        format!("{}-{}.{}", prefix, uuid_v5, suffix)
+    } else {
+
+        format!("{}-{}", fname, uuid_v5)
+    }
+
+}
 #[cfg(test)]
 mod test {
     use super::range_parser;
