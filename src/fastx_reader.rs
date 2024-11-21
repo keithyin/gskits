@@ -1,4 +1,4 @@
-use crate::{ds::ReadInfo, gsbam::bam_record_ext::{BamRecord, BamRecordExt}};
+use crate::ds::ReadInfo;
 
 pub mod fasta_reader;
 pub mod fastq_reader;
