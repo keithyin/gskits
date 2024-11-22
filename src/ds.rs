@@ -6,13 +6,14 @@ use crate::gsbam::bam_record_ext::{BamRecord, BamRecordExt};
 pub struct ReadInfo {
     pub name: String,
     pub seq: String, 
-    pub ch: Option<usize>,
+    pub ch: Option<u32>,
     pub np: Option<u32>,
     pub rq: Option<f32>,
     pub qual: Option<Vec<u8>>, // phreq, no offset
-    pub dw: Option<u8>,
-    pub ar: Option<u8>,
-    pub cr: Option<u8>
+    pub dw: Option<Vec<u8>>,
+    pub ar: Option<Vec<u8>>,
+    pub cr: Option<Vec<u8>>,
+    
 }
 
 
@@ -63,10 +64,10 @@ impl ReadInfo {
             np: record_ext.get_np().map(|v| v as u32),
             rq: record_ext.get_rq(),
             qual: Some(record_ext.get_qual().to_vec()),
-            dw: None,
-            ar: None,
-            cr: None
-
+            dw: record_ext.get_dw().map(|v| v.into_iter().map(|v| v as u8).collect()),
+            ar: record_ext.get_ar().map(|v| v.into_iter().map(|v| v as u8).collect()),
+            cr: record_ext.get_cr().map(|v| v.into_iter().map(|v| v as u8).collect()),
         }
     }
+
 }
