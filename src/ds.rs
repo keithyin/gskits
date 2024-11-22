@@ -9,7 +9,7 @@ pub struct ReadInfo {
     pub ch: Option<usize>,
     pub np: Option<u32>,
     pub rq: Option<f32>,
-    pub qual: Option<String>, // phreq+33 string
+    pub qual: Option<Vec<u8>>, // phreq, no offset
     pub dw: Option<u8>,
     pub ar: Option<u8>,
     pub cr: Option<u8>
@@ -31,7 +31,7 @@ impl ReadInfo {
         }
     }
 
-    pub fn new_fq_record(name: String, seq: String, qual: String) -> Self {
+    pub fn new_fq_record(name: String, seq: String, qual: Vec<u8>) -> Self {
         Self {
             name: name,
             seq: seq,
@@ -62,7 +62,7 @@ impl ReadInfo {
             ch: record_ext.get_ch(),
             np: record_ext.get_np().map(|v| v as u32),
             rq: record_ext.get_rq(),
-            qual: None,
+            qual: Some(record_ext.get_qual().to_vec()),
             dw: None,
             ar: None,
             cr: None

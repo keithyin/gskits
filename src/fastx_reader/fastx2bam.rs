@@ -72,7 +72,6 @@ pub fn fastq2bam(fq_filename: &str, delim: &str, channel_idx: usize) -> String {
 
         let mut bam_record = Record::new();
 
-        let qual = qual.into_bytes().into_iter().map(|q| q-33).collect::<Vec<_>>();
         bam_record.set_tid(0);
 
         bam_record.set(qname.as_bytes(), None, seq.as_bytes(), &qual);

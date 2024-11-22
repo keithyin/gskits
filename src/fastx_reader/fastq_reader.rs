@@ -67,7 +67,11 @@ impl Iterator for FastqReader {
             .read_one_line()
             .expect("not a valid FastqRecord")
             .trim()
-            .to_string();
+            .as_bytes()
+            .iter()
+            .map(|v| *v - 33)
+            .collect()
+            ;
 
         Some(ReadInfo::new_fq_record(header, seq, qual))
     }

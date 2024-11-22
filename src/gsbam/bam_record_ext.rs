@@ -26,7 +26,7 @@ impl<'a> BamRecordExt<'a> {
         BamRecordExt {
             bam_record,
             qname: None,
-            seq: None,
+            seq: None
         }
     }
 
@@ -93,6 +93,10 @@ impl<'a> BamRecordExt<'a> {
 
     pub fn get_qname(&self) -> String {
         unsafe { String::from_utf8_unchecked(self.bam_record.qname().to_vec()) }
+    }
+
+    pub fn get_qual(&self) -> &[u8]{
+        self.bam_record.qual()
     }
 
     pub fn get_ch(&self) -> Option<usize> {
