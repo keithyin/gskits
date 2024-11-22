@@ -61,7 +61,7 @@ impl ReadInfo {
             seq: seq,
             ch: record_ext.get_ch(),
             np: record_ext.get_np().map(|v| v as u32),
-            rq: None,
+            rq: record_ext.get_rq(),
             qual: None,
             dw: None,
             ar: None,
