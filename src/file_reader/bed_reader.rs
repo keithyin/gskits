@@ -4,7 +4,7 @@ use std::{collections::HashMap, io::BufRead};
 #[derive(Debug, Clone)]
 pub struct BedRowData {
     pub chromosome: String,
-    pub begin: usize, // 0-based. 0-based in bed file
+    pub begin: usize, // 0-coordinate
     pub end: usize
 }
 
@@ -53,30 +53,11 @@ impl<'a> Iterator for BedFileReaderIter<'a>  {
     }
 }
 
-pub struct BedFile {
-    
-    #[allow(unused)]
-    regions: HashMap<String, (usize, usize)>
-}
-
-impl BedFile {
-
-    #[allow(unused)]
-    pub fn new(file_reader: &mut dyn BufRead) -> Self {
-        let reader_iter = BedFileReaderIter::new(file_reader);
-        let mut regions = HashMap::new();
-        for bed_row in reader_iter {
-
-        }
-
-        Self { regions }
-
-
-    }
-}
-
+///
+/// bed file
+///     chrom   start   end   [0-based]
 pub struct BedInfo {
-    info: HashMap<String, Vec<(usize, usize)>>
+    regions: HashMap<String, Vec<(usize, usize)>>
 }
 
 impl BedInfo {
@@ -93,20 +74,20 @@ impl BedInfo {
             v.sort_unstable_by_key(|v| v.0);
         });
 
-        Self { info}
+        Self { regions: info}
     }
 
     #[allow(unused)]
     pub fn from_info(info: HashMap<String, Vec<(usize, usize)> >) -> Self {
-        Self { info }
+        Self { regions: info }
     }
 
     pub fn within_the_range(&self, chromosome: &str, begin_end: &(usize, usize)) -> bool{
         
-        if !self.info.contains_key(chromosome) {
+        if !self.regions.contains_key(chromosome) {
             return false;
         }
-        let sorted_range = self.info.get(chromosome).unwrap();
+        let sorted_range = self.regions.get(chromosome).unwrap();
         return match sorted_range.binary_search_by_key(&begin_end.0, |v| v.0) {
             Ok(n) => sorted_range[n].1 >= begin_end.1,
             Err(n) => {
@@ -117,6 +98,36 @@ impl BedInfo {
                 }
             }
         };
+    }
+
+    pub fn point_within_region(&self, chrom: &str, position: usize) -> bool {
+        self.regions.get(chrom)
+        .and_then(|start_ends| {
+            let in_region = match start_ends.binary_search_by_key(&position, |&(s, _)| s) {
+                Ok(_) => true,
+                Err(n) => {
+                    if n == 0 {
+                        false
+                    } else {
+                        let pre_s_e = &start_ends[n - 1];
+                        if position >= pre_s_e.1 {
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                }
+            };
+            Some(in_region)
+
+        })
+        .unwrap_or(false)
+
+    }
+
+    pub fn get_regions(&self, chrom: &str) -> Option<&Vec<(usize, usize)>> {
+        self.regions.get(chrom)
+
     }
 
 }

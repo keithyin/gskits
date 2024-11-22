@@ -3,7 +3,7 @@ use std::{collections::HashMap, io::{self, BufRead}};
 #[derive(Debug)]
 pub struct VcfRowData {
     pub chrom: String,
-    pub pos: usize, // zero based. 1-based in vcf file
+    pub pos: usize, // zero based!!!. but the file is 1-based 
     pub ref_bases: String,
     pub alt_bases: String,
     pub phred_q: u32,
@@ -13,13 +13,14 @@ impl VcfRowData {
 
     /// chrom pos id ref alt qual filter info format ..
     pub fn from_str(inp: &str) -> Self {
+        let inp = inp.trim();
         let items = inp.split("\t").collect::<Vec<_>>();
 
         let chrom = items[0].trim().to_string();
-        let pos = items[1].parse::<usize>().unwrap() - 1;
+        let pos = items[1].parse::<usize>().expect(&format!("invalid line '{}', invalid iterm:{}", inp, items[1])) - 1;
         let ref_bases = items[3].trim().to_string();
         let alt_bases = items[4].trim().to_string();
-        let phred_q = items[5].parse::<u32>().unwrap();
+        let phred_q = items[5].parse::<u32>().expect(&format!("invalid line '{}', invalid iterm:'{}'", inp, items[5]));
 
         VcfRowData {
             chrom,
@@ -82,7 +83,8 @@ impl<'a> Iterator for VcfReaderIter<'a> {
 
 }
 
-
+/// Vcf file
+/// 
 pub struct VcfInfo {
     info: HashMap<String, Vec<usize>>,
 }
@@ -131,6 +133,48 @@ impl VcfInfo {
         };
     }
 
+    pub fn point_hit(&self, chromosome: &str, position: usize) -> bool {
+        if !self.info.contains_key(chromosome) {
+            return false;
+        }
+
+        let sorted_vec = self.info.get(chromosome).unwrap();
+        return match sorted_vec.binary_search(&position) {
+            Ok(_) => true,
+            Err(_) => false
+        };
+    }
+
 }
 
 
+#[cfg(test)]
+mod test {
+    // use std::{collections::HashSet, io::BufReader};
+
+    // use crate::pbar::{get_spin_pb, DEFAULT_INTERVAL};
+
+    // use super::VcfReaderIter;
+
+
+    // #[test]
+    // fn test_cvf_reader_iter() {
+    //     let vcf_filepath = "/data/ccs_data/HG002/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf";
+    //     let file = std::fs::File::open(vcf_filepath).unwrap();
+    //     let mut reader = BufReader::new(file);
+    //     let vcf_iter = VcfReaderIter::new(&mut reader);
+
+    //     let mut chroms = HashSet::new();
+
+    //     let pbar = get_spin_pb(format!("reading {vcf_filepath}"), DEFAULT_INTERVAL);
+
+    //     for item in vcf_iter {
+    //         chroms.insert(item.chrom.clone());
+    //         pbar.inc(1);
+    //     }
+    //     pbar.finish();
+    //     eprintln!("{:?}", chroms);
+    // }
+    
+
+}
