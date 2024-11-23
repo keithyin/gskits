@@ -1,78 +1,57 @@
 use std::{
     fs::{self, File},
-    io::{BufRead, BufReader},
+    io::BufReader,
 };
 
-use super::{fastx_header_line_to_header, ReadInfo};
+use super::ReadInfo;
+use bio::io::fastq::{self, FastqRead};
 
 pub struct FastqReader {
     fname: String,
-    reader: BufReader<File>
+    reader: fastq::Reader<BufReader<File>>,
+    record: fastq::Record,
 }
 
 impl FastqReader {
     pub fn new(fname: String) -> Self {
         let file = fs::File::open(&fname).expect(&format!("open {} error", fname));
         let reader = BufReader::new(file);
-        Self { fname, reader }
-    }
-    pub fn get_fname(&self) -> &str{
-        return &self.fname;
-    }
-
-    fn read_one_line(&mut self) -> Option<String> {
-        let mut line = String::new();
-        if let Ok(n) = self.reader.read_line(&mut line) {
-            if n == 0 {
-                return None;
-            }
-            line = line.trim().to_string();
-        } else {
-            return None;
+        let reader = fastq::Reader::from_bufread(reader);
+        Self {
+            fname,
+            reader,
+            record: fastq::Record::new(),
         }
-        return Some(line);
+    }
+    pub fn get_fname(&self) -> &str {
+        return &self.fname;
     }
 }
 
 impl Iterator for FastqReader {
     type Item = ReadInfo;
     fn next(&mut self) -> Option<Self::Item> {
-        let header = self.read_one_line();
-        if header.is_none() || header.as_ref().unwrap().trim().len() == 0 {
+        self.reader
+            .read(&mut self.record)
+            .expect(&format!("read fastq record error. {}", self.fname));
+
+        if self.record.is_empty() {
             return None;
         }
-        let mut header = header.unwrap();
-        if !header.starts_with("@") {
-            panic!("header:'{}' not a valid fastq header", header);
-        }
+        Some(ReadInfo::new_fq_record(
+            self.record.id().to_string(),
+            unsafe { String::from_utf8_unchecked(self.record.seq().to_vec()) },
+            self.record.qual().iter().map(|v| *v - 33).collect(),
+        ))
 
-        header = fastx_header_line_to_header(&header);
-
-        let seq = self
-            .read_one_line()
-            .expect("not a valid FastqRecord")
-            .trim()
-            .to_string();
-        let plus = self
-            .read_one_line()
-            .expect("not a valid FastqRecord")
-            .trim()
-            .to_string();
-
-        if !plus.starts_with("+") {
-            panic!("plus:'{}' not a valid fastq plus", plus);
-        }
-
-        let qual = self
-            .read_one_line()
-            .expect("not a valid FastqRecord")
-            .trim()
-            .as_bytes()
-            .iter()
-            .map(|v| *v - 33)
-            .collect()
-            ;
-
-        Some(ReadInfo::new_fq_record(header, seq, qual))
+        // let qual = self
+        //     .read_one_line()
+        //     .expect("not a valid FastqRecord")
+        //     .trim()
+        //     .as_bytes()
+        //     .iter()
+        //     .map(|v| *v - 33)
+        //     .collect()
+        //     ;
     }
 }
