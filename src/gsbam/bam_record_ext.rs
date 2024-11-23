@@ -143,7 +143,8 @@ impl<'a> BamRecordExt<'a> {
             _ => None,
         })
     }
-
+    
+    #[allow(unused)]
     fn get_uint(&self, tag:&[u8]) -> Option<u32> {
         self.bam_record.aux(tag).ok().and_then(|aux| match aux {
             Aux::U8(v) => Some(v as u32),
@@ -170,6 +171,7 @@ impl<'a> BamRecordExt<'a> {
         })
     }
 
+    #[allow(unused)]
     fn get_int_list(&self, tag: &[u8]) -> Option<Vec<i32>> {
         self.bam_record.aux(tag).ok().and_then(|aux| match aux {
             Aux::ArrayI8(v) => Some(v.iter().map(|v| v as i32).collect::<Vec<i32>>()),
