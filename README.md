@@ -9,3 +9,7 @@ common kits
 
 
 # ChangeLog
+
+## 0.8.2
+
+* compute_qend
