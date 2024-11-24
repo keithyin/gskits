@@ -150,6 +150,10 @@ impl<'a> BamRecordExt<'a> {
         self.get_uint_list(b"cr")
     }
 
+    pub fn get_be(&self) -> Option<Vec<u32>> {
+        self.get_uint_list(b"be")
+    }
+
     fn get_int(&self, tag: &[u8]) -> Option<u32> {
         self.bam_record.aux(tag).ok().and_then(|aux| match aux {
             Aux::I8(v) => Some(v as u32),
