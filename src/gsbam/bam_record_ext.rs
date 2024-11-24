@@ -72,6 +72,25 @@ impl<'a> BamRecordExt<'a> {
         aligned_span as f32 / seq_len as f32
     }
 
+    pub fn get_qstart(&self) -> usize {
+        self.bam_record.pos() as usize
+    }
+
+    pub fn compute_qend(&self) -> usize {
+        let aligned_qlen = self
+            .bam_record
+            .cigar()
+            .iter()
+            .map(|cigar| match *cigar {
+                Cigar::Equal(n) | Cigar::Diff(n) | Cigar::Ins(n) | Cigar::Match(n) => n,
+                _ => 0,
+            })
+            .reduce(|acc, n| acc + n)
+            .unwrap_or(0);
+
+        self.get_qstart() + aligned_qlen as usize
+    }
+
     pub fn get_seq_cached(&mut self) -> &str {
         if self.seq.is_none() {
             self.seq = Some(self.get_seq());
@@ -143,9 +162,9 @@ impl<'a> BamRecordExt<'a> {
             _ => None,
         })
     }
-    
+
     #[allow(unused)]
-    fn get_uint(&self, tag:&[u8]) -> Option<u32> {
+    fn get_uint(&self, tag: &[u8]) -> Option<u32> {
         self.bam_record.aux(tag).ok().and_then(|aux| match aux {
             Aux::U8(v) => Some(v as u32),
             Aux::U16(v) => Some(v as u32),

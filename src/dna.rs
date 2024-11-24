@@ -29,4 +29,12 @@ mod test {
         let res = reverse_complement(dna_sequence);
         assert_eq!(res, "GCTACGAT");
     }
+
+    #[test]
+    fn test_bio_alpha(){
+
+        let iupac = bio::alphabets::dna::iupac_alphabet();
+        println!("{:?}", iupac);
+
+    }
 }
