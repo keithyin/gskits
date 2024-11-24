@@ -13,6 +13,7 @@ pub struct ReadInfo {
     pub dw: Option<Vec<u8>>,
     pub ar: Option<Vec<u8>>,
     pub cr: Option<Vec<u8>>,
+    pub be: Option<Vec<u32>>
     
 }
 
@@ -28,7 +29,8 @@ impl ReadInfo {
             qual: None,
             dw: None,
             ar: None,
-            cr: None
+            cr: None,
+            be: None,
         }
     }
 
@@ -42,7 +44,8 @@ impl ReadInfo {
             qual: Some(qual),
             dw: None,
             ar: None,
-            cr: None
+            cr: None,
+            be: None,
 
         }
     }
@@ -67,6 +70,7 @@ impl ReadInfo {
             dw: record_ext.get_dw().map(|v| v.into_iter().map(|v| v as u8).collect()),
             ar: record_ext.get_ar().map(|v| v.into_iter().map(|v| v as u8).collect()),
             cr: record_ext.get_cr().map(|v| v.into_iter().map(|v| v as u8).collect()),
+            be: record_ext.get_be(),
         }
     }
 
