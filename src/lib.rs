@@ -7,3 +7,19 @@ pub mod utils;
 pub mod ds;
 pub mod dna;
 pub mod file_reader;
+
+
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn test_alphabet() {
+
+        use bio::alphabets;
+
+        println!("{:?}", alphabets::dna::alphabet());
+        let alphabet = alphabets::dna::alphabet();
+        
+    }
+
+}

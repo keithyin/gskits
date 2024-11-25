@@ -1,5 +1,6 @@
 use std::env;
 use std::{fmt::Debug, str::FromStr, time};
+use anyhow::anyhow;
 use uuid::Uuid;
 use chrono::{Local, DateTime};
 
@@ -135,11 +136,6 @@ impl<'a> Timer<'a> {
     }
 }
 
-
-
-
-
-
 // the generated filename will be fname-${uuid5}-
 pub fn generate_tmp_filename(fname: &str) -> String {
     let now: DateTime<Local> = Local::now();
@@ -157,6 +153,28 @@ pub fn generate_tmp_filename(fname: &str) -> String {
     }
 
 }
+
+
+pub enum FastxFile {
+    Fasta,
+    Fastq
+}
+
+pub fn fastx_file_fmt(fname: &str) -> anyhow::Result<FastxFile> {
+
+    if fname.ends_with("fa") || fname.ends_with("fna") || fname.ends_with("fasta") {
+        return Ok(FastxFile::Fasta);
+    }
+
+    if fname.ends_with("fastq") || fname.ends_with("fq") {
+        return Ok(FastxFile::Fastq);
+    }
+
+    return Err(anyhow!("{} is not a fastx file", fname));
+
+}
+
+
 #[cfg(test)]
 mod test {
     use super::range_parser;
