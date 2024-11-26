@@ -11,7 +11,7 @@ common kits
 # ChangeLog
 
 
-## 0.8.6-dev
+## 0.8.6
 
 * + phreq.rs
 * + gsbam::build_pg_header, gsbam::read_bam
