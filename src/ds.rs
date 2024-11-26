@@ -1,11 +1,12 @@
+use std::collections::HashMap;
+
 use crate::gsbam::bam_record_ext::{BamRecord, BamRecordExt};
 
 /// common data structures
 
-
 pub struct ReadInfo {
     pub name: String,
-    pub seq: String, 
+    pub seq: String,
     pub ch: Option<u32>,
     pub np: Option<u32>,
     pub rq: Option<f32>,
@@ -13,10 +14,8 @@ pub struct ReadInfo {
     pub dw: Option<Vec<u8>>,
     pub ar: Option<Vec<u8>>,
     pub cr: Option<Vec<u8>>,
-    pub be: Option<Vec<u32>>
-    
+    pub be: Option<Vec<u32>>,
 }
-
 
 impl ReadInfo {
     pub fn new_fa_record(name: String, seq: String) -> Self {
@@ -46,7 +45,6 @@ impl ReadInfo {
             ar: None,
             cr: None,
             be: None,
-
         }
     }
 
@@ -67,11 +65,39 @@ impl ReadInfo {
             np: record_ext.get_np().map(|v| v as u32),
             rq: record_ext.get_rq(),
             qual: Some(record_ext.get_qual().to_vec()),
-            dw: record_ext.get_dw().map(|v| v.into_iter().map(|v| v as u8).collect()),
-            ar: record_ext.get_ar().map(|v| v.into_iter().map(|v| v as u8).collect()),
-            cr: record_ext.get_cr().map(|v| v.into_iter().map(|v| v as u8).collect()),
+            dw: record_ext
+                .get_dw()
+                .map(|v| v.into_iter().map(|v| v as u8).collect()),
+            ar: record_ext
+                .get_ar()
+                .map(|v| v.into_iter().map(|v| v as u8).collect()),
+            cr: record_ext
+                .get_cr()
+                .map(|v| v.into_iter().map(|v| v as u8).collect()),
             be: record_ext.get_be(),
         }
     }
+}
 
+pub fn name2idx_and_seq(read_infos: &Vec<ReadInfo>) -> HashMap<&str, (usize, &str)> {
+    read_infos
+        .iter()
+        .enumerate()
+        .map(|(idx, read_info)| (read_info.name.as_str(), (idx, read_info.seq.as_str())))
+        .collect()
+}
+
+pub fn name2seq(read_infos: &Vec<ReadInfo>) -> HashMap<&str, &str> {
+    read_infos
+        .iter()
+        .map(|read_info| (read_info.name.as_str(), read_info.seq.as_str()))
+        .collect()
+}
+
+pub fn idx2name_and_seq(read_infos: &Vec<ReadInfo>) -> HashMap<usize, (&str, &str)> {
+    read_infos
+        .iter()
+        .enumerate()
+        .map(|(idx, read_info)| (idx, (read_info.name.as_str(), read_info.seq.as_str())))
+        .collect()
 }

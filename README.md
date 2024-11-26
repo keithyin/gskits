@@ -15,6 +15,7 @@ common kits
 
 * + phreq.rs
 * + gsbam::build_pg_header, gsbam::read_bam
+* + ds::name2idx_and_seq, ds::name2seq, ds::idx2name_and_seq
 
 ## 0.8.2
 
