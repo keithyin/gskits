@@ -14,7 +14,7 @@ common kits
 ## 0.8.6
 
 * + phreq.rs
-* + gsbam::build_pg_header
+* + gsbam::build_pg_header, gsbam::read_bam
 
 ## 0.8.2
 
