@@ -87,6 +87,14 @@ pub fn name2idx_and_seq(read_infos: &Vec<ReadInfo>) -> HashMap<&str, (usize, &st
         .collect()
 }
 
+pub fn name2idx(read_infos: &Vec<ReadInfo>) -> HashMap<&str, usize> {
+    read_infos
+        .iter()
+        .enumerate()
+        .map(|(idx, read_info)| (read_info.name.as_str(), idx))
+        .collect()
+}
+
 pub fn name2seq(read_infos: &Vec<ReadInfo>) -> HashMap<&str, &str> {
     read_infos
         .iter()
@@ -101,3 +109,4 @@ pub fn idx2name_and_seq(read_infos: &Vec<ReadInfo>) -> HashMap<usize, (&str, &st
         .map(|(idx, read_info)| (idx, (read_info.name.as_str(), read_info.seq.as_str())))
         .collect()
 }
+
