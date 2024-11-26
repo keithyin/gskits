@@ -10,6 +10,12 @@ common kits
 
 # ChangeLog
 
+
+## 0.8.6
+
+* + phreq.rs
+* + gsbam::build_pg_header
+
 ## 0.8.2
 
 * compute_qend

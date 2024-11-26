@@ -7,7 +7,7 @@ pub mod utils;
 pub mod ds;
 pub mod dna;
 pub mod file_reader;
-
+pub mod phreq;
 
 #[cfg(test)]
 mod test {
@@ -16,10 +16,8 @@ mod test {
     fn test_alphabet() {
 
         use bio::alphabets;
-
         println!("{:?}", alphabets::dna::alphabet());
-        let alphabet = alphabets::dna::alphabet();
-        
+
     }
 
 }
