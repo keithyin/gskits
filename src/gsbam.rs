@@ -5,6 +5,8 @@ use crate::ds::ReadInfo;
 
 pub mod bam_reader;
 pub mod bam_record_ext;
+pub mod cigar_ext;
+pub mod plp_counts_from_records;
 
 pub fn get_last_pg_from_bam_header(header_view: &HeaderView) -> Option<String> {
     let header = Header::from_template(header_view);

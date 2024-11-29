@@ -123,6 +123,40 @@ impl RangeIdentityCalculator {
     }
 }
 
+pub fn parse_cigar_string(cigar: &str) -> Result<CigarString, String> {
+    let mut cigar_ops = Vec::with_capacity(cigar.len() / 2); // 预分配容量
+    let mut length = 0u32; // 累积长度
+
+    for c in cigar.bytes() {
+        if c.is_ascii_digit() {
+            // 使用 ASCII 操作来解析数字，避免字符串操作
+            length = length * 10 + (c - b'0') as u32;
+        } else {
+            // non digit to CigarOp
+            let op = match c {
+                b'M' => Cigar::Match(length),
+                b'=' => Cigar::Equal(length),
+                b'X' => Cigar::Diff(length),
+                b'I' => Cigar::Ins(length),
+                b'D' => Cigar::Del(length),
+                b'N' => Cigar::RefSkip(length),
+                b'S' => Cigar::SoftClip(length),
+                b'H' => Cigar::HardClip(length),
+                b'P' => Cigar::Pad(length),
+                _ => return Err(format!("Invalid CIGAR operator: {}", c as char)),
+            };
+            cigar_ops.push(op);
+            length = 0; // reset length
+        }
+    }
+
+    if length != 0 {
+        return Err(format!("Trailing digits in CIGAR string: {}", cigar));
+    }
+
+    Ok(CigarString(cigar_ops))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -205,5 +239,11 @@ mod tests {
             "{}",
             calculator.range_identity(4, 7)
         );
+    }
+
+
+    #[test]
+    fn test_parse_cigar_str() {
+        println!("{:?}", parse_cigar_string("4=3S"));
     }
 }

@@ -8,7 +8,6 @@ pub mod ds;
 pub mod dna;
 pub mod file_reader;
 pub mod phreq;
-pub mod cigar_ext;
 
 #[cfg(test)]
 mod test {

@@ -72,11 +72,18 @@ impl<'a> BamRecordExt<'a> {
         aligned_span as f32 / seq_len as f32
     }
 
-    pub fn get_qstart(&self) -> usize {
-        self.bam_record.pos() as usize
+    pub fn query_alignment_start(&self) -> usize {
+        match self.bam_record.cigar().first() {
+            Some(cigar) => match *cigar {
+                Cigar::SoftClip(n) => n as usize,
+                _ => 0,
+            },
+
+            None => 0,
+        }
     }
 
-    pub fn compute_qend(&self) -> usize {
+    pub fn query_alignment_end(&self) -> usize {
         let aligned_qlen = self
             .bam_record
             .cigar()
@@ -85,10 +92,33 @@ impl<'a> BamRecordExt<'a> {
                 Cigar::Equal(n) | Cigar::Diff(n) | Cigar::Ins(n) | Cigar::Match(n) => n,
                 _ => 0,
             })
-            .reduce(|acc, n| acc + n)
-            .unwrap_or(0);
+            .sum::<u32>();
 
-        self.get_qstart() + aligned_qlen as usize
+        self.query_alignment_start() + aligned_qlen as usize
+    }
+
+    pub fn reference_start(&self) -> usize {
+        assert!(self.bam_record.pos() >= 0, "set_pos first");
+        self.bam_record.pos() as usize
+    }
+
+    pub fn reference_end(&self) -> usize {
+        assert!(self.bam_record.pos() >= 0, "set_pos first");
+        let aligned_rlen = self
+            .bam_record
+            .cigar()
+            .iter()
+            .map(|cigar| match *cigar {
+                Cigar::Equal(n)
+                | Cigar::Diff(n)
+                | Cigar::Del(n)
+                | Cigar::Match(n)
+                | Cigar::RefSkip(n) => n,
+                _ => 0,
+            })
+            .sum::<u32>();
+
+        self.bam_record.pos() as usize + aligned_rlen as usize
     }
 
     pub fn get_seq_cached(&mut self) -> &str {
