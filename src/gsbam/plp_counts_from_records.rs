@@ -8,7 +8,7 @@ use super::bam_record_ext::{BamRecord, BamRecordExt};
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref FWD_BASE_2_IDX: HashMap<u8, usize> = {
+    pub static ref FWD_BASE_2_IDX: HashMap<u8, usize> = {
         let mut map = HashMap::new();
         map.insert('A' as u8, 0);
         map.insert('C' as u8, 1);
@@ -17,7 +17,7 @@ lazy_static! {
         map.insert('-' as u8, 8);
         map
     };
-    static ref REV_BASE_2_IDX: HashMap<u8, usize> = {
+    pub static ref REV_BASE_2_IDX: HashMap<u8, usize> = {
         let mut map = HashMap::new();
         map.insert('A' as u8, 4);
         map.insert('C' as u8, 5);
@@ -211,7 +211,15 @@ pub fn plp_within_region(
         }
     }
 
-    let max_ins_of_ref_position = compute_max_ins_of_each_position(&records, start, end);
+    plp_with_records_region(&records, start, end)
+}
+
+pub fn plp_with_records_region(
+    records: &Vec<BamRecord>,
+    start: Option<usize>,
+    end: Option<usize>,
+) -> PlpCnts {
+    let max_ins_of_ref_position = compute_max_ins_of_each_position(records, start, end);
     let len_of_ref_position = max_ins_of_ref_position
         .iter()
         .map(|(&pos, &ins)| (pos, ins + 1))
@@ -229,7 +237,7 @@ pub fn plp_within_region(
 }
 
 /// todo: use the cigar_str to speed up this function
-fn compute_max_ins_of_each_position(
+pub fn compute_max_ins_of_each_position(
     records: &Vec<BamRecord>,
     rstart: Option<usize>,
     rend: Option<usize>,
