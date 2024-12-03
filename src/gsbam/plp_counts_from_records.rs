@@ -270,12 +270,12 @@ pub fn compute_max_ins_of_each_position(
         let mut cur_ins = 0;
         let query_end = record_ext.query_alignment_end();
 
-        println!(
-            "max_ins, qname:{}, rstart:{}, rend:{}",
-            record_ext.get_qname(),
-            start,
-            end
-        );
+        // println!(
+        //     "max_ins, qname:{}, rstart:{}, rend:{}",
+        //     record_ext.get_qname(),
+        //     start,
+        //     end
+        // );
         let mut aligned_pair_full = record.aligned_pairs_full().collect::<Vec<_>>();
         if aligned_pair_full.len() == 0 {
             continue;
@@ -315,7 +315,7 @@ pub fn compute_max_ins_of_each_position(
 
             if let Some(qpos_) = qpos {
                 if qpos_ as usize >= query_end {
-                    println!("query hit end: {}", qpos_);
+                    // println!("query hit end: {}", qpos_);
                     // set the last rpos max ins and then break
                     let rpos_ = rpos_cursor.unwrap();
 
@@ -348,7 +348,7 @@ pub fn compute_max_ins_of_each_position(
 mod test {
     use std::collections::HashMap;
 
-    use rust_htslib::bam::{ext::BamRecordExtensions, IndexedReader, Read};
+    use rust_htslib::bam::{ext::BamRecordExtensions, Header, IndexedReader, Read};
 
     use crate::gsbam::{
         bam_record_ext::{BamRecord, BamRecordExt},
@@ -569,18 +569,18 @@ mod test {
         let mut reader = IndexedReader::from_path("test_data/sbr2smc.aligned.bam").unwrap();
         reader.set_threads(10).unwrap();
 
-        // let header = Header::from_template(reader.header());
-        // let header_hm = header.to_hashmap();
-        // let seqs = header_hm.get("SQ").unwrap();
-        // for seq in seqs {
-        //     println!("{}", seq.get("SN").unwrap());
-        //
-        // }
-        plp_within_region(
-            &mut reader,
-            "20241108_Sync_Y0701_04_H01_Run0001/521756/smc",
-            None,
-            None,
-        );
+        let header = Header::from_template(reader.header());
+        let header_hm = header.to_hashmap();
+        let seqs = header_hm.get("SQ").unwrap();
+        for seq in seqs {
+            println!("{}", seq.get("SN").unwrap());
+        
+        }
+        // plp_within_region(
+        //     &mut reader,
+        //     "20241108_Sync_Y0701_04_H01_Run0001/521756/smc",
+        //     None,
+        //     None,
+        // );
     }
 }
