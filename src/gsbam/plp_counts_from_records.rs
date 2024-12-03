@@ -107,14 +107,19 @@ impl PlpCnts {
         let end = cmp::min(self.ref_end as i64, record_ext.reference_end() as i64);
         let fwd = !record.is_reverse();
         let mut rpos_cursor = None;
+        let mut qpos_cursor = None;
         let mut cur_ins = 0;
         let mut anchor = 0;
         let query_seq = record.seq().as_bytes();
-        let query_end = BamRecordExt::new(record).query_alignment_end();
+        let query_end = record_ext.query_alignment_end();
 
+        // println!("qname:{}, start:{}, end:{}", record_ext.get_qname(), start, end);
         for [qpos, rpos] in record.aligned_pairs_full() {
             if rpos.is_some() {
                 rpos_cursor = rpos;
+            }
+            if qpos.is_some() {
+                qpos_cursor = qpos;
             }
             if rpos_cursor.is_none() {
                 continue;
@@ -127,13 +132,19 @@ impl PlpCnts {
                 break;
             }
 
-            if let Some(qpos_) = qpos {
-                if qpos_ as usize >= query_end {
+            if let Some(qpos_cursor_) = qpos_cursor {
+                if qpos_cursor_ as usize >= query_end {
                     break;
                 }
             }
-
+            // print!("{},", rpos_cursor.unwrap());
             if let Some(rpos_) = rpos {
+                if !self.major_start_idx.contains_key(&(rpos_ as usize)) {
+                    let mut all_pos = self.major_start_idx.keys().map(|&v| v).collect::<Vec<_>>();
+                    all_pos.sort();
+                    panic!("rpos not found: {}, all pos are: {:?}", rpos_, all_pos);
+                }
+
                 anchor = *self.major_start_idx.get(&(rpos_ as usize)).unwrap();
 
                 cur_ins = 0;
@@ -147,6 +158,7 @@ impl PlpCnts {
                 self.update_cnts(anchor + cur_ins, '-' as u8, fwd);
             }
         }
+        // println!("");
     }
 
     pub fn get_major(&self) -> &Vec<usize> {
@@ -248,18 +260,41 @@ pub fn compute_max_ins_of_each_position(
     let rend = rend.map(|v| v as i64);
     for record in records {
         let record_ext = BamRecordExt::new(record);
-        let mut start = rstart.unwrap_or(record.reference_start());
+        let mut start = rstart.unwrap_or(record_ext.reference_start() as i64);
         let mut end = rend.unwrap_or(record_ext.reference_end() as i64);
-        start = cmp::max(start, record.reference_start());
+        start = cmp::max(start, record_ext.reference_start() as i64);
         end = cmp::min(end, record_ext.reference_end() as i64);
 
         let mut rpos_cursor = None;
+        // let mut qpos_cursor = None;
         let mut cur_ins = 0;
-        let query_end = BamRecordExt::new(record).query_alignment_end();
-        for [qpos, rpos] in record.aligned_pairs_full() {
+        let query_end = record_ext.query_alignment_end();
+
+        println!(
+            "max_ins, qname:{}, rstart:{}, rend:{}",
+            record_ext.get_qname(),
+            start,
+            end
+        );
+        let mut aligned_pair_full = record.aligned_pairs_full().collect::<Vec<_>>();
+        if aligned_pair_full.len() == 0 {
+            continue;
+        }
+
+        // this make the following for loop correct. 
+        // if the query match to the last base of the ref seqence. the following for loop won't give the right result
+        // but add this , the result is right
+        if let Some(last_ref_pos) = aligned_pair_full.last().unwrap()[0] {
+            aligned_pair_full.push([Some(last_ref_pos + 1), None]);
+        }
+
+        for [qpos, rpos] in aligned_pair_full.into_iter() {
             if rpos.is_some() {
                 rpos_cursor = rpos;
             }
+            // if qpos.is_some() {
+            //     qpos_cursor = qpos;
+            // }
             if rpos_cursor.is_none() {
                 continue;
             }
@@ -267,6 +302,8 @@ pub fn compute_max_ins_of_each_position(
             if rpos_cursor.unwrap() < start {
                 continue;
             }
+
+            // print!("{},", rpos_cursor.unwrap());
             if rpos_cursor.unwrap() >= end {
                 // set the last rpos max ins and then break
                 let rpos_ = rpos_cursor.unwrap();
@@ -278,6 +315,7 @@ pub fn compute_max_ins_of_each_position(
 
             if let Some(qpos_) = qpos {
                 if qpos_ as usize >= query_end {
+                    println!("query hit end: {}", qpos_);
                     // set the last rpos max ins and then break
                     let rpos_ = rpos_cursor.unwrap();
 
@@ -300,6 +338,7 @@ pub fn compute_max_ins_of_each_position(
                 cur_ins += 1;
             }
         }
+        // println!("");
     }
 
     pos2ins
@@ -309,7 +348,7 @@ pub fn compute_max_ins_of_each_position(
 mod test {
     use std::collections::HashMap;
 
-    use rust_htslib::bam::ext::BamRecordExtensions;
+    use rust_htslib::bam::{ext::BamRecordExtensions, IndexedReader, Read};
 
     use crate::gsbam::{
         bam_record_ext::{BamRecord, BamRecordExt},
@@ -317,7 +356,7 @@ mod test {
         plp_counts_from_records::PlpCnts,
     };
 
-    use super::compute_max_ins_of_each_position;
+    use super::{compute_max_ins_of_each_position, plp_within_region};
 
     #[test]
     fn test_test_plp_using_aligned_pairs_with_right_soft_clip() {
@@ -522,6 +561,26 @@ mod test {
                 0, 0, 0, 2, 0, 2, 0, 0, 0, 1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
                 0, 0
             ]
+        );
+    }
+
+    #[test]
+    fn test_plp_within_region() {
+        let mut reader = IndexedReader::from_path("test_data/sbr2smc.aligned.bam").unwrap();
+        reader.set_threads(10).unwrap();
+
+        // let header = Header::from_template(reader.header());
+        // let header_hm = header.to_hashmap();
+        // let seqs = header_hm.get("SQ").unwrap();
+        // for seq in seqs {
+        //     println!("{}", seq.get("SN").unwrap());
+        //
+        // }
+        plp_within_region(
+            &mut reader,
+            "20241108_Sync_Y0701_04_H01_Run0001/521756/smc",
+            None,
+            None,
         );
     }
 }
