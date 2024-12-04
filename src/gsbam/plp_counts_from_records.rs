@@ -8,25 +8,49 @@ use super::bam_record_ext::{BamRecord, BamRecordExt};
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref FWD_BASE_2_IDX: HashMap<u8, usize> = {
-        let mut map = HashMap::new();
-        map.insert('A' as u8, 0);
-        map.insert('C' as u8, 1);
-        map.insert('G' as u8, 2);
-        map.insert('T' as u8, 3);
-        map.insert('-' as u8, 8);
-        map
+    static ref FWD_BASE_2_IDX: HashMap<u8, usize> = {
+        let mut m = HashMap::new();
+        m.insert('A' as u8, 4);
+        m.insert('C' as u8, 5);
+        m.insert('G' as u8, 6);
+        m.insert('T' as u8, 7);
+        m.insert(' ' as u8, 9);
+        m.insert('-' as u8, 9);
+        m
     };
-    pub static ref REV_BASE_2_IDX: HashMap<u8, usize> = {
-        let mut map = HashMap::new();
-        map.insert('A' as u8, 4);
-        map.insert('C' as u8, 5);
-        map.insert('G' as u8, 6);
-        map.insert('T' as u8, 7);
-        map.insert('-' as u8, 9);
-        map
+    static ref REV_BASE_2_IDX: HashMap<u8, usize> = {
+        let mut m = HashMap::new();
+        m.insert('A' as u8, 0);
+        m.insert('C' as u8, 1);
+        m.insert('G' as u8, 2);
+        m.insert('T' as u8, 3);
+        m.insert(' ' as u8, 8);
+        m.insert('-' as u8, 8);
+
+        m
     };
 }
+
+// lazy_static! {
+//     pub static ref FWD_BASE_2_IDX: HashMap<u8, usize> = {
+//         let mut map = HashMap::new();
+//         map.insert('A' as u8, 0);
+//         map.insert('C' as u8, 1);
+//         map.insert('G' as u8, 2);
+//         map.insert('T' as u8, 3);
+//         map.insert('-' as u8, 8);
+//         map
+//     };
+//     pub static ref REV_BASE_2_IDX: HashMap<u8, usize> = {
+//         let mut map = HashMap::new();
+//         map.insert('A' as u8, 4);
+//         map.insert('C' as u8, 5);
+//         map.insert('G' as u8, 6);
+//         map.insert('T' as u8, 7);
+//         map.insert('-' as u8, 9);
+//         map
+//     };
+// }
 
 pub fn get_base_idx(base: u8, fwd: bool) -> usize {
     if fwd {
@@ -46,6 +70,7 @@ pub struct PlpCnts {
     major_start_idx: HashMap<usize, usize>,
     timesteps: usize,
 }
+
 impl fmt::Debug for PlpCnts {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PlpCnts")
