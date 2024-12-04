@@ -16,6 +16,7 @@ lazy_static! {
         m.insert('T' as u8, 7);
         m.insert(' ' as u8, 9);
         m.insert('-' as u8, 9);
+        m.insert('*' as u8, 9);
         m
     };
     static ref REV_BASE_2_IDX: HashMap<u8, usize> = {
@@ -26,6 +27,7 @@ lazy_static! {
         m.insert('T' as u8, 3);
         m.insert(' ' as u8, 8);
         m.insert('-' as u8, 8);
+        m.insert('*' as u8, 8);
 
         m
     };
@@ -306,7 +308,7 @@ pub fn compute_max_ins_of_each_position(
             continue;
         }
 
-        // this make the following for loop correct. 
+        // this make the following for loop correct.
         // if the query match to the last base of the ref seqence. the following for loop won't give the right result
         // but add this , the result is right
         if let Some(last_ref_pos) = aligned_pair_full.last().unwrap()[0] {
@@ -599,7 +601,6 @@ mod test {
         let seqs = header_hm.get("SQ").unwrap();
         for seq in seqs {
             println!("{}", seq.get("SN").unwrap());
-        
         }
         // plp_within_region(
         //     &mut reader,
