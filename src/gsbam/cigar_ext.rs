@@ -157,6 +157,49 @@ pub fn parse_cigar_string(cigar: &str) -> Result<CigarString, String> {
     Ok(CigarString(cigar_ops))
 }
 
+pub struct LongInsRegions {
+    regions: Vec<(usize, usize)>,
+}
+
+impl LongInsRegions {
+    pub fn new(cigar_str: &CigarString, ins_thr: usize) -> Self {
+        Self {
+            regions: long_ins_regions_in_query(cigar_str, ins_thr),
+        }
+    }
+
+    pub fn within(&self, pos: usize) -> bool {
+        self.regions
+            .binary_search_by(|&(start, end)| {
+                if pos < start {
+                    std::cmp::Ordering::Greater
+                } else if pos >= end {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            })
+            .is_ok()
+    }
+}
+
+pub fn long_ins_regions_in_query(cigar_str: &CigarString, ins_thr: usize) -> Vec<(usize, usize)> {
+    let mut pos = 0;
+    let mut regions = vec![];
+    cigar_str.iter().for_each(|&cigar| match cigar {
+        Cigar::SoftClip(n) | Cigar::Diff(n) | Cigar::Equal(n) => pos += (n as usize),
+        Cigar::Ins(n) => {
+            let n = n as usize;
+            if n >= ins_thr {
+                regions.push((pos, pos + n));
+            }
+            pos += n;
+        }
+        otherwise => panic!("not a valid cigar:{}", otherwise),
+    });
+    regions
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -241,9 +284,18 @@ mod tests {
         );
     }
 
-
     #[test]
     fn test_parse_cigar_str() {
         println!("{:?}", parse_cigar_string("4=3S"));
+    }
+
+    #[test]
+    fn test_long_ins_regions_in_query() {
+        let cigar_str = parse_cigar_string("10I2=").unwrap();
+        let regions = long_ins_regions_in_query(&cigar_str, 5);
+        assert_eq!(regions[0], (0, 10));
+
+        let long_ins_region = LongInsRegions::new(&cigar_str, 5);
+        assert_eq!(long_ins_region.within(10), false);
     }
 }
