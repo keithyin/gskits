@@ -33,27 +33,6 @@ lazy_static! {
     };
 }
 
-// lazy_static! {
-//     pub static ref FWD_BASE_2_IDX: HashMap<u8, usize> = {
-//         let mut map = HashMap::new();
-//         map.insert('A' as u8, 0);
-//         map.insert('C' as u8, 1);
-//         map.insert('G' as u8, 2);
-//         map.insert('T' as u8, 3);
-//         map.insert('-' as u8, 8);
-//         map
-//     };
-//     pub static ref REV_BASE_2_IDX: HashMap<u8, usize> = {
-//         let mut map = HashMap::new();
-//         map.insert('A' as u8, 4);
-//         map.insert('C' as u8, 5);
-//         map.insert('G' as u8, 6);
-//         map.insert('T' as u8, 7);
-//         map.insert('-' as u8, 9);
-//         map
-//     };
-// }
-
 pub fn get_base_idx(base: u8, fwd: bool) -> usize {
     if fwd {
         *FWD_BASE_2_IDX.get(&base).unwrap()
@@ -120,6 +99,28 @@ impl PlpCnts {
             major_start_idx,
             timesteps,
         }
+    }
+
+    /// build plp_cnts from records and ref_start and end
+    pub fn from_records(
+        records: &Vec<BamRecord>,
+        rstart: Option<usize>,
+        rend: Option<usize>,
+    ) -> Self {
+        let max_ins_of_ref_position = compute_max_ins_of_each_ref_position(records, rstart, rend);
+        let len_of_ref_position = max_ins_of_ref_position
+            .iter()
+            .map(|(&pos, &ins)| (pos, ins + 1))
+            .collect::<HashMap<_, _>>();
+
+        let mut len_of_ref_positions_list = len_of_ref_position
+            .iter()
+            .map(|(&pos, &len)| (pos as usize, len as usize))
+            .collect::<Vec<(_, _)>>();
+        len_of_ref_positions_list.sort_by_key(|v| v.0);
+        let mut plp_cnts = Self::new(len_of_ref_positions_list);
+        plp_cnts.update_with_records(records);
+        plp_cnts
     }
 
     pub fn update_with_records(&mut self, records: &Vec<BamRecord>) {
@@ -196,26 +197,36 @@ impl PlpCnts {
         &self.minor
     }
 
+    /// [feat_size, timestemp]
     pub fn get_cnts(&self) -> &Vec<u32> {
         &self.cnts
     }
 
-    fn update_cnts(&mut self, col: usize, base: u8, fwd: bool) {
-        let base_idx = get_base_idx(base, fwd);
-        self.cnts[col + base_idx * self.timesteps] += 1;
+    fn update_cnts(&mut self, tt: usize, base: u8, fwd: bool) {
+        let idx = self.compute_idx(tt, base, fwd);
+
+        self.cnts[idx] += 1;
     }
 
+    /// [feat_size, timestemp]
+    fn compute_idx(&self, tt: usize, base: u8, fwd: bool) -> usize {
+        let idx = (get_base_idx(base, fwd) * self.timesteps) + tt;
+        idx
+    }
+
+    // [feat_size, timestemp]
     pub fn cnts2str(&self) -> String {
-        let mut tot_str_list = vec![];
-        for col in 0..self.timesteps {
-            let mut col_strs = vec![];
-            for row in 0..10 {
-                let idx = col + row * self.timesteps;
-                col_strs.push(self.cnts[idx].to_string());
+        let mut tot_str_list = Vec::with_capacity(10);
+
+        for row in 0..10 {
+            let mut row_str = Vec::with_capacity(self.timesteps);
+            for col in 0..self.timesteps {
+                let idx = row * self.timesteps + col;
+                row_str.push(self.cnts[idx].to_string());
             }
-            tot_str_list.push(col_strs.join(", "));
+            tot_str_list.push(row_str.join("\t"));
         }
-        tot_str_list.join("\n")
+        return tot_str_list.join("\n");
     }
 }
 
@@ -258,25 +269,11 @@ pub fn plp_with_records_region(
     start: Option<usize>,
     end: Option<usize>,
 ) -> PlpCnts {
-    let max_ins_of_ref_position = compute_max_ins_of_each_position(records, start, end);
-    let len_of_ref_position = max_ins_of_ref_position
-        .iter()
-        .map(|(&pos, &ins)| (pos, ins + 1))
-        .collect::<HashMap<_, _>>();
-
-    let mut len_of_ref_positions_list = len_of_ref_position
-        .iter()
-        .map(|(&pos, &len)| (pos as usize, len as usize))
-        .collect::<Vec<(_, _)>>();
-    len_of_ref_positions_list.sort_by_key(|v| v.0);
-
-    let mut plp_cnts = PlpCnts::new(len_of_ref_positions_list);
-    plp_cnts.update_with_records(&records);
-    plp_cnts
+    PlpCnts::from_records(records, start, end)
 }
 
 /// todo: use the cigar_str to speed up this function
-pub fn compute_max_ins_of_each_position(
+pub fn compute_max_ins_of_each_ref_position(
     records: &Vec<BamRecord>,
     rstart: Option<usize>,
     rend: Option<usize>,
@@ -373,7 +370,6 @@ pub fn compute_max_ins_of_each_position(
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
 
     use rust_htslib::bam::{ext::BamRecordExtensions, Header, IndexedReader, Read};
 
@@ -383,7 +379,7 @@ mod test {
         plp_counts_from_records::PlpCnts,
     };
 
-    use super::{compute_max_ins_of_each_position, plp_within_region};
+    use super::compute_max_ins_of_each_ref_position;
 
     #[test]
     fn test_test_plp_using_aligned_pairs_with_right_soft_clip() {
@@ -411,7 +407,7 @@ mod test {
         assert_eq!(record_ext.reference_start(), 0);
         assert_eq!(record_ext.reference_end(), 4);
 
-        let position_max_ins = compute_max_ins_of_each_position(&vec![record], None, None);
+        let position_max_ins = compute_max_ins_of_each_ref_position(&vec![record], None, None);
         assert_eq!(position_max_ins.len(), 4);
         assert_eq!(position_max_ins.get(&0), Some(&0));
         assert_eq!(position_max_ins.get(&1), Some(&0));
@@ -443,7 +439,7 @@ mod test {
         assert_eq!(record_ext.reference_start(), 0);
         assert_eq!(record_ext.reference_end(), 5);
 
-        let position_max_ins = compute_max_ins_of_each_position(&vec![record], None, None);
+        let position_max_ins = compute_max_ins_of_each_ref_position(&vec![record], None, None);
         assert_eq!(position_max_ins.len(), 5);
         assert_eq!(position_max_ins.get(&0), Some(&1));
         assert_eq!(position_max_ins.get(&1), Some(&0));
@@ -496,26 +492,16 @@ mod test {
         );
         records.push(record);
 
-        let max_ins_of_ref_position = compute_max_ins_of_each_position(&records, None, None);
-        let len_of_ref_position = max_ins_of_ref_position
-            .iter()
-            .map(|(&pos, &ins)| (pos, ins + 1))
-            .collect::<HashMap<_, _>>();
+        let plp_cnts = PlpCnts::from_records(&records, None, None);
 
-        let mut len_of_ref_positions_list = len_of_ref_position
-            .iter()
-            .map(|(&pos, &len)| (pos as usize, len as usize))
-            .collect::<Vec<(_, _)>>();
-        len_of_ref_positions_list.sort_by_key(|v| v.0);
-
-        let mut plp_cnts = PlpCnts::new(len_of_ref_positions_list);
-        plp_cnts.update_with_records(&records);
+        println!("{}", plp_cnts.cnts2str());
+        println!("{:?}", plp_cnts.get_cnts());
         assert_eq!(
             plp_cnts.get_cnts(),
             &vec![
-                2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0
+                2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0
             ]
         );
 
@@ -566,27 +552,12 @@ mod test {
         );
         records.push(record);
 
-        let max_ins_of_ref_position = compute_max_ins_of_each_position(&records, Some(1), Some(4));
-        let len_of_ref_position = max_ins_of_ref_position
-            .iter()
-            .map(|(&pos, &ins)| (pos, ins + 1))
-            .collect::<HashMap<_, _>>();
-
-        let mut len_of_ref_positions_list = len_of_ref_position
-            .iter()
-            .map(|(&pos, &len)| (pos as usize, len as usize))
-            .collect::<Vec<(_, _)>>();
-        len_of_ref_positions_list.sort_by_key(|v| v.0);
-
-        let mut plp_cnts = PlpCnts::new(len_of_ref_positions_list);
-        plp_cnts.update_with_records(&records);
-        // println!("{}", plp_cnts.cnts2str());
-        // println!("{:?}", plp_cnts);
+        let plp_cnts = PlpCnts::from_records(&records, Some(1), Some(4));
         assert_eq!(
             plp_cnts.get_cnts(),
             &vec![
-                0, 0, 0, 2, 0, 2, 0, 0, 0, 1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-                0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 1, 3, 0, 0, 0, 0, 0,
+                0, 1
             ]
         );
     }

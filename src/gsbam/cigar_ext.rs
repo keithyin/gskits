@@ -1,5 +1,7 @@
 use rust_htslib::bam::record::{Cigar, CigarString};
 
+
+/// indentity of query range !!
 #[derive(Debug, Clone)]
 pub struct RangeIdentityCalculator {
     query_start_pos_and_op: Vec<(u32, Cigar)>,
@@ -30,7 +32,7 @@ impl RangeIdentityCalculator {
         }
     }
 
-    pub fn range_identity(&self, start: u32, end: u32) -> f32 {
+    pub fn compute_range_identity(&self, start: u32, end: u32) -> f32 {
         let start_idx = match self
             .query_start_pos_and_op
             .binary_search_by_key(&start, |&(a, _)| a)
@@ -62,7 +64,7 @@ impl RangeIdentityCalculator {
             Err(idx) => idx - 1,
         };
 
-        println!("{}-{}", start_idx, end_idx);
+        // println!("{}-{}", start_idx, end_idx);
 
         let res_cigars = if start_idx == end_idx {
             let res_cigar = match self.query_start_pos_and_op[start_idx].1 {
@@ -157,6 +159,8 @@ pub fn parse_cigar_string(cigar: &str) -> Result<CigarString, String> {
     Ok(CigarString(cigar_ops))
 }
 
+
+/// long ins regions of query
 pub struct LongInsRegions {
     regions: Vec<(usize, usize)>,
 }
@@ -187,7 +191,7 @@ pub fn long_ins_regions_in_query(cigar_str: &CigarString, ins_thr: usize) -> Vec
     let mut pos = 0;
     let mut regions = vec![];
     cigar_str.iter().for_each(|&cigar| match cigar {
-        Cigar::SoftClip(n) | Cigar::Diff(n) | Cigar::Equal(n) => pos += (n as usize),
+        Cigar::SoftClip(n) | Cigar::Diff(n) | Cigar::Equal(n) => pos += n as usize,
         Cigar::Ins(n) => {
             let n = n as usize;
             if n >= ins_thr {
@@ -221,38 +225,38 @@ mod tests {
 
         // 测试完全覆盖的区域
         assert!(
-            (calculator.range_identity(0, 5) - 1.0).abs() < 1e-6,
+            (calculator.compute_range_identity(0, 5) - 1.0).abs() < 1e-6,
             "{}",
-            calculator.range_identity(0, 5)
+            calculator.compute_range_identity(0, 5)
         ); // 全是 Match
         assert!(
-            (calculator.range_identity(5, 8) - 0.0).abs() < 1e-6,
+            (calculator.compute_range_identity(5, 8) - 0.0).abs() < 1e-6,
             "{}",
-            calculator.range_identity(5, 8)
+            calculator.compute_range_identity(5, 8)
         ); // 全是 Diff
         assert!(
-            (calculator.range_identity(8, 18) - 1.0).abs() < 1e-6,
+            (calculator.compute_range_identity(8, 18) - 1.0).abs() < 1e-6,
             "{}",
-            calculator.range_identity(8, 18)
+            calculator.compute_range_identity(8, 18)
         ); // 全是 Equal
 
         // 测试部分覆盖的区域
         assert!(
-            (calculator.range_identity(3, 7) - 0.5).abs() < 1e-6,
+            (calculator.compute_range_identity(3, 7) - 0.5).abs() < 1e-6,
             "{}",
-            calculator.range_identity(3, 7)
+            calculator.compute_range_identity(3, 7)
         ); // Match 和 Diff 混合
         assert!(
-            (calculator.range_identity(7, 12) - 0.8).abs() < 1e-6,
+            (calculator.compute_range_identity(7, 12) - 0.8).abs() < 1e-6,
             "{}",
-            calculator.range_identity(7, 12)
+            calculator.compute_range_identity(7, 12)
         ); // Diff 和 Equal 混合
 
         // 测试包含 Insert 的区域
         assert!(
-            (calculator.range_identity(18, 26) - 0.75).abs() < 1e-6,
+            (calculator.compute_range_identity(18, 26) - 0.75).abs() < 1e-6,
             "{}",
-            calculator.range_identity(18, 26)
+            calculator.compute_range_identity(18, 26)
         ); // Equal + Ins + Equal
     }
 
@@ -264,23 +268,23 @@ mod tests {
 
         // 测试完全在 Match 的边界
         assert!(
-            (calculator.range_identity(0, 3) - 1.0).abs() < 1e-6,
+            (calculator.compute_range_identity(0, 3) - 1.0).abs() < 1e-6,
             "{}",
-            calculator.range_identity(0, 3)
+            calculator.compute_range_identity(0, 3)
         );
 
         // 测试完全在 Diff 的边界
         assert!(
-            (calculator.range_identity(6, 10) - 0.0).abs() < 1e-6,
+            (calculator.compute_range_identity(6, 10) - 0.0).abs() < 1e-6,
             "{}",
-            calculator.range_identity(6, 10)
+            calculator.compute_range_identity(6, 10)
         );
 
         // 跨越 Match 和 Diff
         assert!(
-            (calculator.range_identity(4, 7) - 0.333333).abs() < 1e-6,
+            (calculator.compute_range_identity(4, 7) - 0.333333).abs() < 1e-6,
             "{}",
-            calculator.range_identity(4, 7)
+            calculator.compute_range_identity(4, 7)
         );
     }
 
