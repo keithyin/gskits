@@ -1,10 +1,14 @@
 [package]
 name = "gskits"
-version = "0.9.7"
+version = "0.9.8"
 edition = "2021"
 description = "common kits"
 license = "MIT"
 repository ="https://github.com/keithyin/gskits"
+
+exclude = [
+    "test_data/*",
+]
 
 [dependencies]
 rust-htslib = "0.47.0"
