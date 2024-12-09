@@ -21,3 +21,10 @@ chrono = "0.4"
 bio="2.0.3"
 
 lazy_static = "1.5"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "transpose_benchmark"
+harness = false
