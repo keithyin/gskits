@@ -4,7 +4,6 @@
 
 // use super::bam_record_ext::BamReader;
 
-
 // it's a self reference struct, hard to implement it using safe rust
 // pub struct BamRecordReader<'a> {
 //     fname: String,
@@ -27,10 +26,29 @@
 // impl<'a> Iterator for BamRecordReader<'a> {
 //     type Item = ReadsInfo;
 //     fn next(&mut self) -> Option<Self::Item> {
-        
+
 //         let mut bam_h = BamReader::from_path(&self.fname).expect(&format!("open {} error", self.fname));
 //         let records: rust_htslib::bam::Records<'_, rust_htslib::bam::Reader> = bam_h.records();
 
-
 //     }
 // }
+
+use rust_htslib::bam::Read;
+
+use super::bam_record_ext::BamRecord;
+
+pub fn read_records(bam_h: &mut rust_htslib::bam::IndexedReader) -> Vec<BamRecord> {
+    let mut records = vec![];
+    let mut record = BamRecord::new();
+    while let Some(res) = bam_h.read(&mut record) {
+        match res {
+            Ok(_) => {
+                records.push(record);
+                record = BamRecord::new();
+            }
+            Err(e) => panic!("read record error, {:?}", e),
+        }
+    }
+
+    records
+}
