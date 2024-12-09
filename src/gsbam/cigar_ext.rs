@@ -192,6 +192,7 @@ pub fn long_ins_regions_in_query(cigar_str: &CigarString, ins_thr: usize) -> Vec
     let mut regions = vec![];
     cigar_str.iter().for_each(|&cigar| match cigar {
         Cigar::SoftClip(n) | Cigar::Diff(n) | Cigar::Equal(n) => pos += n as usize,
+        Cigar::Del(_) => {},
         Cigar::Ins(n) => {
             let n = n as usize;
             if n >= ins_thr {
