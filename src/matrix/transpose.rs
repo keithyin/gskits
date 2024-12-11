@@ -26,6 +26,8 @@ pub fn transpose_blocked<T>(
 where
     T: Sized + Default + Clone + Copy,
 {
+    assert_eq!(matrix.len(), dim0 * dim1, "matrix.len={}, dim0*dim1={}", matrix.len(), dim0 * dim1);
+
     let block_size = block_size.unwrap_or(500);
     // 创建一个新的 Vec 用于存储转置后的矩阵
     let mut transposed = vec![T::default(); dim0 * dim1];
