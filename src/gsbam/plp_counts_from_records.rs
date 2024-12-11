@@ -205,6 +205,11 @@ impl PlpCnts {
 
                 self.update_cnts(anchor + cur_ins, query_seq[qpos_ as usize], fwd);
             } else {
+                let qpos_cursor_ = qpos_cursor.unwrap() as usize;
+                if query_locus_blacklist.contains(&(qpos_cursor_ as usize)) || query_locus_blacklist.contains(&(qpos_cursor_ + 1)) {
+                    continue;
+                } 
+
                 self.update_cnts(anchor + cur_ins, '-' as u8, fwd);
             }
         }
@@ -638,10 +643,10 @@ mod test {
             &vec![255; seq.len()],
         );
 
-        println!(
-            "{:?}",
-            get_query_locus_blacklist(&record, Some(&blacklist_gen))
-        );
+        // println!(
+        //     "{:?}",
+        //     get_query_locus_blacklist(&record, Some(&blacklist_gen))
+        // );
 
         records.push(record);
 
@@ -655,6 +660,12 @@ mod test {
             seq.as_bytes(),
             &vec![255; seq.len()],
         );
+
+        println!(
+            "{:?}",
+            get_query_locus_blacklist(&record, Some(&blacklist_gen))
+        );
+
         records.push(record);
 
         let mut record = BamRecord::new();

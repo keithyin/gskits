@@ -340,7 +340,12 @@ mod tests {
         assert!((calculator.compute_range_identity(0, 10).2 - 4.0 / 7.0).abs() < 1e-6);
         assert!((calculator.compute_range_identity(7, 8).2 - 1.0).abs() < 1e-6);
         assert!((calculator.compute_range_identity(6, 7).2 - 1.0).abs() < 1e-6);
-        
+
+        // ACTCC
+        // ATTCC
+        let cigar_str = parse_cigar_string("1=1X3=").unwrap();
+        let calc = RangeIdentityCalculator::new(&cigar_str);
+        println!("{:?}", calc.compute_range_identity(1, 4));
     }
 
     #[test]

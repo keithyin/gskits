@@ -63,6 +63,8 @@ impl TQueryLocusBlacklist for LowIdentityBlacklist {
             .flat_map(|(start, end)| {
                 let (identity_start, identity_end, identity) =
                     identity_calc.compute_range_identity(start as u32, end as u32);
+                // println!("{}, {}, {}", identity_start, identity_end, identity);
+                
                 let (identity_start, identity_end) =
                     (identity_start as usize, identity_end as usize);
                 if (identity_end - identity_start) > self.win_size / 2
