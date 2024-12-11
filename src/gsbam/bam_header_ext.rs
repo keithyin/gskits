@@ -1,5 +1,4 @@
-
-use rust_htslib::bam::Header;
+use rust_htslib::bam::{Header, HeaderView};
 
 #[derive(Debug, Clone)]
 pub struct HeaderSQ {
@@ -76,5 +75,11 @@ impl BamHeaderExt {
         }
 
         self.all_seqs.as_ref()
+    }
+}
+
+impl From<&HeaderView> for BamHeaderExt {
+    fn from(value: &HeaderView) -> Self {
+        BamHeaderExt::new(Header::from_template(value))
     }
 }

@@ -3,7 +3,10 @@ use std::{cmp, collections::HashMap};
 
 use rust_htslib::bam::{ext::BamRecordExtensions, IndexedReader, Read};
 
-use super::bam_record_ext::{BamRecord, BamRecordExt};
+use super::{
+    bam_record_ext::{BamRecord, BamRecordExt},
+    query_locus_blacklist_gen::{get_query_locus_blacklist, TQueryLocusBlacklist},
+};
 
 use lazy_static::lazy_static;
 
@@ -106,8 +109,10 @@ impl PlpCnts {
         records: &Vec<BamRecord>,
         rstart: Option<usize>,
         rend: Option<usize>,
+        query_locus_blacklist_gen: Option<&Vec<Box<dyn TQueryLocusBlacklist>>>,
     ) -> Self {
-        let max_ins_of_ref_position = compute_max_ins_of_each_ref_position(records, rstart, rend);
+        let max_ins_of_ref_position =
+            compute_max_ins_of_each_ref_position(records, rstart, rend, query_locus_blacklist_gen);
         let len_of_ref_position = max_ins_of_ref_position
             .iter()
             .map(|(&pos, &ins)| (pos, ins + 1))
@@ -119,17 +124,27 @@ impl PlpCnts {
             .collect::<Vec<(_, _)>>();
         len_of_ref_positions_list.sort_by_key(|v| v.0);
         let mut plp_cnts = Self::new(len_of_ref_positions_list);
-        plp_cnts.update_with_records(records);
+        plp_cnts.update_with_records(records, query_locus_blacklist_gen);
         plp_cnts
     }
 
-    pub fn update_with_records(&mut self, records: &Vec<BamRecord>) {
+    pub fn update_with_records(
+        &mut self,
+        records: &Vec<BamRecord>,
+        query_locus_blacklist_gen: Option<&Vec<Box<dyn TQueryLocusBlacklist>>>,
+    ) {
         for record in records {
-            self.update_with_record(record);
+            self.update_with_record(record, query_locus_blacklist_gen);
         }
     }
 
-    pub fn update_with_record(&mut self, record: &BamRecord) {
+    pub fn update_with_record(
+        &mut self,
+        record: &BamRecord,
+        query_locus_blacklist_gen: Option<&Vec<Box<dyn TQueryLocusBlacklist>>>,
+    ) {
+        let query_locus_blacklist = get_query_locus_blacklist(record, query_locus_blacklist_gen);
+
         let record_ext = BamRecordExt::new(record);
         let start = cmp::max(self.ref_start as i64, record_ext.reference_start() as i64);
         let end = cmp::min(self.ref_end as i64, record_ext.reference_end() as i64);
@@ -181,6 +196,13 @@ impl PlpCnts {
             }
 
             if let Some(qpos_) = qpos {
+                if query_locus_blacklist.contains(&(qpos_ as usize)) {
+                    if cur_ins > 0 {
+                        cur_ins -= 1
+                    };
+                    continue;
+                }
+
                 self.update_cnts(anchor + cur_ins, query_seq[qpos_ as usize], fwd);
             } else {
                 self.update_cnts(anchor + cur_ins, '-' as u8, fwd);
@@ -235,6 +257,7 @@ pub fn plp_within_region(
     contig: &str,
     start: Option<usize>,
     end: Option<usize>,
+    query_locus_blacklist_gen: Option<&Vec<Box<dyn TQueryLocusBlacklist>>>,
 ) -> PlpCnts {
     if start.is_none() && end.is_none() {
         reader.fetch(contig).unwrap();
@@ -261,28 +284,35 @@ pub fn plp_within_region(
         }
     }
 
-    plp_with_records_region(&records, start, end)
+    plp_with_records_region(&records, start, end, query_locus_blacklist_gen)
 }
 
 pub fn plp_with_records_region(
     records: &Vec<BamRecord>,
     start: Option<usize>,
     end: Option<usize>,
+    query_locus_blacklist_gen: Option<&Vec<Box<dyn TQueryLocusBlacklist>>>,
 ) -> PlpCnts {
-    PlpCnts::from_records(records, start, end)
+    PlpCnts::from_records(records, start, end, query_locus_blacklist_gen)
 }
 
 /// todo: use the cigar_str to speed up this function
+/// query_locus_blacklist: just like remove the base in query_locus_blacklist from the query
+///     so: when match, treat it as deletion
+///         when insertion: treat it as noting
 pub fn compute_max_ins_of_each_ref_position(
     records: &Vec<BamRecord>,
     rstart: Option<usize>,
     rend: Option<usize>,
+    query_locus_blacklist_gen: Option<&Vec<Box<dyn TQueryLocusBlacklist>>>,
 ) -> HashMap<i64, i32> {
     let mut pos2ins = HashMap::new();
 
     let rstart = rstart.map(|v| v as i64);
     let rend = rend.map(|v| v as i64);
     for record in records {
+        let query_locus_blacklist = get_query_locus_blacklist(record, query_locus_blacklist_gen);
+
         let record_ext = BamRecordExt::new(record);
         let mut start = rstart.unwrap_or(record_ext.reference_start() as i64);
         let mut end = rend.unwrap_or(record_ext.reference_end() as i64);
@@ -307,7 +337,7 @@ pub fn compute_max_ins_of_each_ref_position(
 
         // this make the following for loop correct.
         // if the query match to the last base of the ref seqence. the following for loop won't give the right result
-        // but add this , the result is right
+        // but add this , it will get the right result.
         if let Some(last_ref_pos) = aligned_pair_full.last().unwrap()[0] {
             aligned_pair_full.push([Some(last_ref_pos + 1), None]);
         }
@@ -359,7 +389,12 @@ pub fn compute_max_ins_of_each_ref_position(
 
                 cur_ins = 0;
             } else {
-                cur_ins += 1;
+                let qpos_ = qpos.unwrap() as usize;
+                cur_ins += if query_locus_blacklist.contains(&qpos_) {
+                    0
+                } else {
+                    1
+                };
             }
         }
         // println!("");
@@ -377,6 +412,9 @@ mod test {
         bam_record_ext::{BamRecord, BamRecordExt},
         cigar_ext::parse_cigar_string,
         plp_counts_from_records::PlpCnts,
+        query_locus_blacklist_gen::{
+            get_query_locus_blacklist, LongInsBlacklist, LowIdentityBlacklist, TQueryLocusBlacklist,
+        },
     };
 
     use super::compute_max_ins_of_each_ref_position;
@@ -407,7 +445,8 @@ mod test {
         assert_eq!(record_ext.reference_start(), 0);
         assert_eq!(record_ext.reference_end(), 4);
 
-        let position_max_ins = compute_max_ins_of_each_ref_position(&vec![record], None, None);
+        let position_max_ins =
+            compute_max_ins_of_each_ref_position(&vec![record], None, None, None);
         assert_eq!(position_max_ins.len(), 4);
         assert_eq!(position_max_ins.get(&0), Some(&0));
         assert_eq!(position_max_ins.get(&1), Some(&0));
@@ -439,7 +478,8 @@ mod test {
         assert_eq!(record_ext.reference_start(), 0);
         assert_eq!(record_ext.reference_end(), 5);
 
-        let position_max_ins = compute_max_ins_of_each_ref_position(&vec![record], None, None);
+        let position_max_ins =
+            compute_max_ins_of_each_ref_position(&vec![record], None, None, None);
         assert_eq!(position_max_ins.len(), 5);
         assert_eq!(position_max_ins.get(&0), Some(&1));
         assert_eq!(position_max_ins.get(&1), Some(&0));
@@ -492,7 +532,7 @@ mod test {
         );
         records.push(record);
 
-        let plp_cnts = PlpCnts::from_records(&records, None, None);
+        let plp_cnts = PlpCnts::from_records(&records, None, None, None);
 
         println!("{}", plp_cnts.cnts2str());
         println!("{:?}", plp_cnts.get_cnts());
@@ -552,7 +592,7 @@ mod test {
         );
         records.push(record);
 
-        let plp_cnts = PlpCnts::from_records(&records, Some(1), Some(4));
+        let plp_cnts = PlpCnts::from_records(&records, Some(1), Some(4), None);
         assert_eq!(
             plp_cnts.get_cnts(),
             &vec![
@@ -573,11 +613,73 @@ mod test {
         for seq in seqs {
             println!("{}", seq.get("SN").unwrap());
         }
-        // plp_within_region(
-        //     &mut reader,
-        //     "20241108_Sync_Y0701_04_H01_Run0001/521756/smc",
-        //     None,
-        //     None,
+    }
+
+    #[test]
+    fn test_plp_cnts_with_blacklist() {
+        // --A--CTCC---
+        // GGACCCT-CGGG
+        //   A--TTCC
+        //      CTCC
+        let blacklist_gen: Vec<Box<dyn TQueryLocusBlacklist>> = vec![
+            Box::new(LongInsBlacklist::new(2)),
+            Box::new(LowIdentityBlacklist::new(0.8, 3, 1)),
+        ];
+
+        let mut records = vec![];
+        let mut record = BamRecord::new();
+        let seq = "GGACCCTCGGG";
+        record.set_pos(0);
+
+        record.set(
+            b"qname",
+            Some(&parse_cigar_string("2S1=2I2=1D1=3S").unwrap()),
+            seq.as_bytes(),
+            &vec![255; seq.len()],
+        );
+
+        println!(
+            "{:?}",
+            get_query_locus_blacklist(&record, Some(&blacklist_gen))
+        );
+
+        records.push(record);
+
+        let mut record = BamRecord::new();
+        let seq = "ATTCC";
+        record.set_pos(0);
+
+        record.set(
+            b"qname1",
+            Some(&parse_cigar_string("1=1X3=").unwrap()),
+            seq.as_bytes(),
+            &vec![255; seq.len()],
+        );
+        records.push(record);
+
+        let mut record = BamRecord::new();
+        let seq = "CTCC";
+        record.set_pos(1);
+
+        record.set(
+            b"qname2",
+            Some(&parse_cigar_string("4=").unwrap()),
+            seq.as_bytes(),
+            &vec![255; seq.len()],
+        );
+        records.push(record);
+
+        let plp_cnts = PlpCnts::from_records(&records, None, None, Some(&blacklist_gen));
+
+        println!("{}", plp_cnts.cnts2str());
+        println!("{:?}", plp_cnts.get_cnts());
+        // assert_eq!(
+        //     plp_cnts.get_cnts(),
+        //     &vec![
+        //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        //         2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 0, 0,
+        //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0
+        //     ]
         // );
     }
 }

@@ -9,6 +9,7 @@ pub mod dna;
 pub mod file_reader;
 pub mod phreq;
 pub mod matrix;
+pub mod itertools;
 
 #[cfg(test)]
 mod test {
