@@ -1,6 +1,10 @@
 [package]
 name = "gskits"
+<<<<<<< HEAD
 version = "0.11.0"
+=======
+version = "0.10.1-dev"
+>>>>>>> bcbece4608db0f062884cd31c1679702cc94c851
 edition = "2021"
 description = "common kits"
 license = "MIT"
