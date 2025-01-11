@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::gsbam::bam_record_ext::{BamRecord, BamRecordExt};
-
+pub mod region;
 /// common data structures
 
 pub struct ReadInfo {
