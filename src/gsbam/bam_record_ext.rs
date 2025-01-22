@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use rust_htslib::bam::{ext::BamRecordExtensions, record::Aux, record::Cigar, Record};
 
-pub type BamRecord = rust_htslib::bam::record::Record;
+pub type BamRecord = rust_htslib::bam::Record;
 pub type BamWriter = rust_htslib::bam::Writer;
 pub type BamReader = rust_htslib::bam::Reader;
 
