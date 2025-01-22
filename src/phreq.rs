@@ -37,7 +37,7 @@ pub fn phreq2quality(phreq: f64) -> f64 {
     1.0 - phreq2err(phreq)
 }
 
-pub fn quality_2_phreq(mut quality: f32, eps: Option<f32>) -> u8 {
+pub fn quality_2_phreq_f32(mut quality: f32, eps: Option<f32>) -> f32 {
     let eps = eps.unwrap_or(1e-5);
     let max_quality = 1.0_f32 - eps;
 
@@ -46,7 +46,11 @@ pub fn quality_2_phreq(mut quality: f32, eps: Option<f32>) -> u8 {
     } else {
         quality
     };
-    let phreq = -10.0_f32 * (1.0_f32 - quality).log10();
+    -10.0_f32 * (1.0_f32 - quality).log10()
+}
+
+pub fn quality_2_phreq(quality: f32, eps: Option<f32>) -> u8 {
+    let phreq = quality_2_phreq_f32(quality, eps);
     phreq.round() as u8
 }
 
