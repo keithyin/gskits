@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::gsbam::bam_record_ext::{BamRecord, BamRecordExt};
 pub mod region;
@@ -15,6 +15,7 @@ pub struct ReadInfo {
     pub ar: Option<Vec<u8>>,
     pub cr: Option<Vec<u8>>,
     pub be: Option<Vec<u32>>,
+    pub nn: Option<Vec<u8>>,
 }
 
 impl ReadInfo {
@@ -30,6 +31,7 @@ impl ReadInfo {
             ar: None,
             cr: None,
             be: None,
+            nn: None,
         }
     }
 
@@ -45,18 +47,53 @@ impl ReadInfo {
             ar: None,
             cr: None,
             be: None,
+            nn: None,
         }
     }
 
-    pub fn from_bam_record(record: &BamRecord, qname_suffix: Option<&str>) -> Self {
+    pub fn from_bam_record(
+        record: &BamRecord,
+        qname_suffix: Option<&str>,
+        tags: &HashSet<String>,
+    ) -> Self {
         let mut qname = unsafe { String::from_utf8_unchecked(record.qname().to_vec()) };
         if let Some(suffix) = qname_suffix {
             qname.push_str(suffix);
         }
-
         let record_ext = BamRecordExt::new(record);
-
         let seq = unsafe { String::from_utf8_unchecked(record.seq().as_bytes()) };
+
+        let dw = if tags.contains("dw") {
+            record_ext
+                .get_dw()
+                .map(|v| v.into_iter().map(|v| v as u8).collect())
+        } else {
+            None
+        };
+
+        let ar = if tags.contains("ar") {
+            record_ext
+                .get_ar()
+                .map(|v| v.into_iter().map(|v| v as u8).collect())
+        } else {
+            None
+        };
+
+        let cr = if tags.contains("cr") {
+            record_ext
+            .get_cr()
+            .map(|v| v.into_iter().map(|v| v as u8).collect())
+        } else {
+            None
+        };
+
+        let nn = if tags.contains("nn") {
+            record_ext
+            .get_nn()
+            .map(|v| v.into_iter().map(|v| v as u8).collect())
+        } else {
+            None
+        };
 
         Self {
             name: qname,
@@ -65,16 +102,11 @@ impl ReadInfo {
             np: record_ext.get_np().map(|v| v as u32),
             rq: record_ext.get_rq(),
             qual: Some(record_ext.get_qual().to_vec()),
-            dw: record_ext
-                .get_dw()
-                .map(|v| v.into_iter().map(|v| v as u8).collect()),
-            ar: record_ext
-                .get_ar()
-                .map(|v| v.into_iter().map(|v| v as u8).collect()),
-            cr: record_ext
-                .get_cr()
-                .map(|v| v.into_iter().map(|v| v as u8).collect()),
+            dw: dw,
+            ar: ar,
+            cr: cr,
             be: record_ext.get_be(),
+            nn: nn
         }
     }
 }
@@ -110,3 +142,12 @@ pub fn idx2name_and_seq(read_infos: &Vec<ReadInfo>) -> HashMap<usize, (&str, &st
         .collect()
 }
 
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn test_read_info() {
+        
+
+    }
+}

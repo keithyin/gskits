@@ -180,6 +180,10 @@ impl<'a> BamRecordExt<'a> {
         self.get_uint_list(b"cr")
     }
 
+    pub fn get_nn(&self) -> Option<Vec<u32>> {
+        self.get_uint_list(b"nn")
+    }
+
     pub fn get_be(&self) -> Option<Vec<u32>> {
         self.get_uint_list(b"be")
     }

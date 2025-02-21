@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bam_record_ext::BamReader;
 use rust_htslib::bam::{header::HeaderRecord, Header, HeaderView, Read};
 
@@ -52,10 +54,11 @@ pub fn read_bam(bam_file: &str, threads: Option<usize>) -> Vec<ReadInfo> {
     let threads = threads.unwrap_or(4);
     let mut reader = BamReader::from_path(bam_file).unwrap();
     reader.set_threads(threads).unwrap();
+    
     reader
         .records()
         .into_iter()
         .map(|record| record.unwrap())
-        .map(|record| ReadInfo::from_bam_record(&record, None))
+        .map(|record| ReadInfo::from_bam_record(&record, None, &HashSet::new()))
         .collect()
 }

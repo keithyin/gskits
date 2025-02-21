@@ -11,6 +11,10 @@ common kits
 
 # ChangeLog
 
+## 0.13.0
+
+* change ReadInfo interface
+
 ## 0.9.0
 
 

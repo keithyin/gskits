@@ -256,6 +256,6 @@ mod test {
         let seq = b"AACGGT";
         let res = find_poly_n_regions(seq);
         // println!("{:?}", res);
-        assert_eq!(res, vec![(0, 2, 67), (3, 5, 71)]);
+        assert_eq!(res, vec![(0, 2, 65), (3, 5, 71)]);
     }
 }
