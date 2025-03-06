@@ -11,6 +11,7 @@ pub mod phreq;
 pub mod matrix;
 pub mod itertools;
 pub mod poly_n;
+pub mod cleanup;
 
 #[cfg(test)]
 mod test {
