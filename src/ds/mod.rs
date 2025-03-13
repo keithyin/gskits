@@ -7,6 +7,7 @@ pub mod region;
 pub struct ReadInfo {
     pub name: String,
     pub seq: String,
+    pub cx: Option<u8>,
     pub ch: Option<u32>,
     pub np: Option<u32>,
     pub rq: Option<f32>,
@@ -23,6 +24,7 @@ impl ReadInfo {
         Self {
             name: name,
             seq: seq,
+            cx: None,
             ch: None,
             np: None,
             rq: None,
@@ -39,6 +41,7 @@ impl ReadInfo {
         Self {
             name: name,
             seq: seq,
+            cx: None,
             ch: None,
             np: None,
             rq: None,
@@ -98,6 +101,7 @@ impl ReadInfo {
         Self {
             name: qname,
             seq: seq,
+            cx: record_ext.get_cx(),
             ch: record_ext.get_ch(),
             np: record_ext.get_np().map(|v| v as u32),
             rq: record_ext.get_rq(),
