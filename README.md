@@ -11,6 +11,10 @@ common kits
 
 # ChangeLog
 
+## 0.14.1
+
+* + collections_ext::counter::Counter
+
 ## 0.13.0
 
 * change ReadInfo interface

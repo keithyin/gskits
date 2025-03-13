@@ -1,4 +1,7 @@
-pub fn phreq_list_2_quality(baseq: &[u8]) -> f32 {
+pub fn phreq_list_2_quality(baseq: &[u8]) -> Option<f32> {
+    if baseq.len() == 0 {
+        return None;
+    }
     let length = baseq.len() as f64;
     let err_rate = baseq
         .iter()
@@ -7,7 +10,7 @@ pub fn phreq_list_2_quality(baseq: &[u8]) -> f32 {
         .reduce(|acc, v| acc + v)
         .unwrap()
         / length;
-    (1.0_f64 - err_rate) as f32
+    Some((1.0_f64 - err_rate) as f32)
 }
 
 pub fn phreq_list_2_quality_list(baseq: &[u8]) -> Vec<f32> {
@@ -63,10 +66,10 @@ mod test {
     #[test]
     fn test_phreq_list_2_quality() {
         let quality = phreq_list_2_quality(&[20, 20, 20, 20]);
-        assert!((quality - 0.99) < 1e-3);
+        assert!((quality.unwrap() - 0.99) < 1e-3);
 
         let quality = phreq_list_2_quality(&[30, 30, 30, 30]);
-        assert!((quality - 0.999) < 1e-4);
+        assert!((quality.unwrap() - 0.999) < 1e-4);
     }
 
     #[test]
@@ -93,16 +96,15 @@ mod test {
     #[test]
     fn test_phreq_list_2_err_list() {
         let quality = phreq_list_2_error_list(&[20, 30, 40, 50]);
-        assert!((quality[0] - (1.0-0.99) ).abs() < 1e-6);
+        assert!((quality[0] - (1.0 - 0.99)).abs() < 1e-6);
         assert!((quality[1] - (1.0 - 0.999)).abs() < 1e-6);
         assert!((quality[2] - (1.0 - 0.9999)).abs() < 1e-6);
         assert!((quality[3] - (1.0 - 0.99999)).abs() < 1e-6);
     }
 
     #[test]
-    fn test_phreq2quality(){
+    fn test_phreq2quality() {
         let quality = phreq2quality(20.0);
         assert!((quality - 0.99).abs() < 1e-6);
     }
-
 }
