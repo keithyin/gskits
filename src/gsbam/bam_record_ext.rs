@@ -164,8 +164,17 @@ impl<'a> BamRecordExt<'a> {
         self.get_float(b"ec")
     }
 
+
     pub fn get_identity(&self) -> Option<f32> {
         self.get_float(b"iy")
+    }
+
+    pub fn get_cq(&self) -> Option<f32> {
+        self.get_float(b"cq")
+    }
+
+    pub fn get_op(&self) -> Option<f32> {
+        self.get_float(b"oe")
     }
 
     pub fn get_rq(&self) -> Option<f32> {
