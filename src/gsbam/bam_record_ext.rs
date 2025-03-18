@@ -173,7 +173,7 @@ impl<'a> BamRecordExt<'a> {
         self.get_float(b"cq")
     }
 
-    pub fn get_op(&self) -> Option<f32> {
+    pub fn get_oe(&self) -> Option<f32> {
         self.get_float(b"oe")
     }
 
