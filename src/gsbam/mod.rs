@@ -11,6 +11,7 @@ pub mod cigar_ext;
 pub mod bam_header_ext;
 pub mod plp_counts_from_records;
 pub mod query_locus_blacklist_gen;
+pub mod utils;
 
 #[deprecated(since="0.10.0", note="use gsbam::bam_header_ext::BamHeaderExt instead")]
 pub fn get_last_pg_from_bam_header(header_view: &HeaderView) -> Option<String> {
