@@ -9,6 +9,15 @@ pub static COMPLEMENT_TABLE: [u8; 256] = {
     table[b'-' as usize] = b'-';
     table[b'*' as usize] = b'*';
     table[b'N' as usize] = b'N';
+
+    table[b'a' as usize] = b't';
+    table[b't' as usize] = b'a';
+    table[b'c' as usize] = b'g';
+    table[b'g' as usize] = b'c';
+    table[b'-' as usize] = b'-';
+    table[b'*' as usize] = b'*';
+    table[b'n' as usize] = b'n';
+
     table
 };
 
@@ -24,6 +33,7 @@ pub const SEQ_NT4_TABLE: [u8; 256] = [
     4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
 ];
 
+/// b"ACGTAA" -> b"TTACGT"
 pub fn reverse_complement(dna: &[u8]) -> Vec<u8> {
     let mut result: Vec<MaybeUninit<u8>> = vec![MaybeUninit::uninit(); dna.len()];
     dna.iter()
