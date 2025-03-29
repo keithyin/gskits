@@ -1,8 +1,8 @@
+use anyhow::anyhow;
+use chrono::{DateTime, Local};
 use std::env;
 use std::{fmt::Debug, str::FromStr, time};
-use anyhow::anyhow;
 use uuid::Uuid;
-use chrono::{Local, DateTime};
 
 pub fn command_line_str() -> String {
     let args: Vec<String> = env::args().collect();
@@ -70,21 +70,19 @@ where
     }
 }
 
-
-
 #[allow(unused)]
 #[derive(Debug)]
 pub struct ScopedTimer {
     iter: usize,
-    elapsed: u128 // nano
+    elapsed: u128, // nano
 }
 
 #[allow(unused)]
 impl ScopedTimer {
-    pub fn new() -> Self{
-        ScopedTimer{
+    pub fn new() -> Self {
+        ScopedTimer {
             iter: 0,
-            elapsed: 0
+            elapsed: 0,
         }
     }
 
@@ -108,12 +106,14 @@ impl ScopedTimer {
         assert!(multiplier > 0);
         self.iter as f64 / (self.elapsed as f64 / multiplier as f64)
     }
-
 }
 
 impl ToString for ScopedTimer {
     fn to_string(&self) -> String {
-        format!("{:.10} iter/nano_secs", (self.iter as f64 / self.elapsed as f64))
+        format!(
+            "{:.10} iter/nano_secs",
+            (self.iter as f64 / self.elapsed as f64)
+        )
     }
 }
 
@@ -126,13 +126,26 @@ pub struct Timer<'a> {
 impl<'a> Timer<'a> {
     fn new(scoped_timer: &'a mut ScopedTimer) -> Self {
         let instant = time::Instant::now();
-        Timer { scoped_timer: scoped_timer, instant: instant }
+        Timer {
+            scoped_timer: scoped_timer,
+            instant: instant,
+        }
     }
 
     pub fn done_with_cnt(mut self, cnt: usize) {
         let elapsed = self.instant.elapsed().as_nanos();
         self.scoped_timer.iter += cnt;
         self.scoped_timer.elapsed += elapsed;
+    }
+
+    ///
+    /// None: iter/nano_sec
+    /// 1000: iter/micro
+    /// 1000_000: iter/milli
+    /// 1000_000_000: iter/sec
+    /// ...
+    pub fn speed(&self, multiplier: Option<u128>) -> f64 {
+        self.scoped_timer.speed(multiplier)
     }
 }
 
@@ -148,20 +161,16 @@ pub fn generate_tmp_filename(fname: &str) -> String {
         let (prefix, suffix) = fname.rsplit_once(".").unwrap();
         format!("{}-{}.{}", prefix, uuid_v5, suffix)
     } else {
-
         format!("{}-{}", fname, uuid_v5)
-    }
-
+    };
 }
-
 
 pub enum FastxFile {
     Fasta,
-    Fastq
+    Fastq,
 }
 
 pub fn fastx_file_fmt(fname: &str) -> anyhow::Result<FastxFile> {
-
     if fname.ends_with("fa") || fname.ends_with("fna") || fname.ends_with("fasta") {
         return Ok(FastxFile::Fasta);
     }
@@ -171,9 +180,7 @@ pub fn fastx_file_fmt(fname: &str) -> anyhow::Result<FastxFile> {
     }
 
     return Err(anyhow!("{} is not a fastx file", fname));
-
 }
-
 
 #[cfg(test)]
 mod test {

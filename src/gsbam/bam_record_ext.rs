@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use rust_htslib::bam::{ext::BamRecordExtensions, record::Aux, record::Cigar, Record};
 
-pub type BamRecord = rust_htslib::bam::record::Record;
+pub type BamRecord = rust_htslib::bam::Record;
 pub type BamWriter = rust_htslib::bam::Writer;
 pub type BamReader = rust_htslib::bam::Reader;
 
@@ -79,7 +79,7 @@ impl<'a> BamRecordExt<'a> {
                 _ => 0,
             },
 
-            None => 0,
+            _ => 0,
         }
     }
 
@@ -148,6 +148,10 @@ impl<'a> BamRecordExt<'a> {
         self.bam_record.qual()
     }
 
+    pub fn get_cx(&self) -> Option<u8> {
+        self.get_int(b"cx").map(|v| v as u8)
+    }
+
     pub fn get_ch(&self) -> Option<u32> {
         self.get_int(b"ch")
     }
@@ -160,8 +164,17 @@ impl<'a> BamRecordExt<'a> {
         self.get_float(b"ec")
     }
 
+
     pub fn get_identity(&self) -> Option<f32> {
         self.get_float(b"iy")
+    }
+
+    pub fn get_cq(&self) -> Option<f32> {
+        self.get_float(b"cq")
+    }
+
+    pub fn get_op(&self) -> Option<f32> {
+        self.get_float(b"oe")
     }
 
     pub fn get_rq(&self) -> Option<f32> {
@@ -178,6 +191,16 @@ impl<'a> BamRecordExt<'a> {
 
     pub fn get_cr(&self) -> Option<Vec<u32>> {
         self.get_uint_list(b"cr")
+    }
+
+    pub fn get_float_cr(&self) -> Option<Vec<f32>> {
+
+        self.get_float_list(b"cr")
+
+    }
+
+    pub fn get_nn(&self) -> Option<Vec<u32>> {
+        self.get_uint_list(b"nn")
     }
 
     pub fn get_be(&self) -> Option<Vec<u32>> {
@@ -212,6 +235,15 @@ impl<'a> BamRecordExt<'a> {
             Aux::Float(v) => Some(v as f32),
             Aux::Double(v) => Some(v as f32),
             _ => None,
+        })
+    }
+
+    fn get_float_list(&self, tag: &[u8]) -> Option<Vec<f32>>{
+        self.bam_record.aux(tag).ok().and_then(|aux| {
+            match aux {
+                Aux::ArrayFloat(v) => Some(v.iter().collect::<Vec<f32>>()),
+                _ => None,
+            }
         })
     }
 
