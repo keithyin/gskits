@@ -247,9 +247,12 @@ impl<'a> Display for BamRecordExt<'a> {
     }
 }
 
-
-pub fn draw_aligned_seq(record: &BamRecord, ref_seq: &[u8], r_start: Option<usize>, r_end: Option<usize>) -> (String, String) {
-
+pub fn draw_aligned_seq(
+    record: &BamRecord,
+    ref_seq: &[u8],
+    r_start: Option<usize>,
+    r_end: Option<usize>,
+) -> (String, String) {
     let mut ref_aligned_seq = String::new();
     let mut query_aligned_seq = String::new();
 
@@ -259,7 +262,6 @@ pub fn draw_aligned_seq(record: &BamRecord, ref_seq: &[u8], r_start: Option<usiz
         if rpos.is_some() {
             rpos_cursor = rpos;
         }
-
 
         if let Some(r_start) = r_start {
             if let Some(rpos_cursor) = rpos_cursor {
@@ -271,17 +273,14 @@ pub fn draw_aligned_seq(record: &BamRecord, ref_seq: &[u8], r_start: Option<usiz
             }
         }
 
-
-
         let q_char = if let Some(qpos_) = qpos {
-            unsafe {(*query_seq.get_unchecked(qpos_ as usize)) as char}
+            unsafe { (*query_seq.get_unchecked(qpos_ as usize)) as char }
         } else {
             '-'
         };
 
-        let r_char = if let Some(rpos_) = rpos{
-            unsafe {(*ref_seq.get_unchecked(rpos_ as usize)) as char}
-
+        let r_char = if let Some(rpos_) = rpos {
+            unsafe { (*ref_seq.get_unchecked(rpos_ as usize)) as char }
         } else {
             '-'
         };
@@ -289,7 +288,6 @@ pub fn draw_aligned_seq(record: &BamRecord, ref_seq: &[u8], r_start: Option<usiz
         ref_aligned_seq.push(r_char);
         query_aligned_seq.push(q_char);
 
-        
         if let Some(r_end) = r_end {
             if let Some(rpos_cursor) = rpos_cursor {
                 if (rpos_cursor as usize) >= (r_end - 1) {
@@ -297,9 +295,7 @@ pub fn draw_aligned_seq(record: &BamRecord, ref_seq: &[u8], r_start: Option<usiz
                 }
             }
         }
-
     }
 
     (ref_aligned_seq, query_aligned_seq)
-
 }
