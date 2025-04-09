@@ -13,6 +13,7 @@ pub mod itertools;
 pub mod poly_n;
 pub mod cleanup;
 pub mod collections_ext;
+pub mod sys_monitor;
 
 #[cfg(test)]
 mod test {
