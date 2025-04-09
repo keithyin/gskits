@@ -1,3 +1,5 @@
+reverse_complement
+
 common kits
 
 * gsbam: bam related kits
@@ -8,8 +10,11 @@ common kits
 * dna: dna utils
 * phreq: phreq and quality utils
 
-
 # ChangeLog
+
+## 0.15.1
+
+* faster reverse_complement
 
 ## 0.14.1
 
@@ -20,7 +25,6 @@ common kits
 * change ReadInfo interface
 
 ## 0.9.0
-
 
 ## 0.8.6
 

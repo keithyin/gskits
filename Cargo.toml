@@ -1,6 +1,6 @@
 [package]
 name = "gskits"
-version = "0.14.6"
+version = "0.15.2"
 edition = "2021"
 description = "common kits"
 license = "MIT"
@@ -29,4 +29,8 @@ criterion = "0.3"
 
 [[bench]]
 name = "transpose_benchmark"
+harness = false
+
+[[bench]]
+name = "dna_utils_benchmark"
 harness = false
