@@ -7,8 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use psutil;
-use systemstat::{self, Platform};
+use sysinfo::{self, Pid, System};
 
 #[derive(Debug, PartialEq, Eq)]
 enum SysMonState {
@@ -106,91 +105,66 @@ fn monitor(
     let _sys_mon_state_guard: _SysMonStateGuard = state.into();
     let pid = pid.unwrap_or(std::process::id());
 
-    let sys_stat = systemstat::System::new();
-    let mut monitored_process = psutil::process::Process::new(pid);
-    if monitored_process.is_err() {
-        tracing::warn!("Failed to get smcCore process info")
-    }
-
     let mut peak_tot_used_memory = 0;
-    let mut peak_smc_core_used_memory = 0;
+    let mut peak_process_used_memory = 0;
 
     let mut now = Instant::now();
+    let mut sys = sysinfo::System::new_all();
 
     loop {
         thread::sleep(Duration::from_secs(1));
+
+        // sys.refresh_processes(
+        //     sysinfo::ProcessesToUpdate::Some(&[sysinfo::Pid::from_u32(pid)]),
+        //     true,
+        // );
+
         if now.elapsed() < monitor_interval {
             if need_stop_flag.load(Ordering::Relaxed) {
                 break;
             }
             continue;
         }
-        now = Instant::now();
 
-        let mem = sys_stat.memory().unwrap();
-        let tot = bytes2_gb(mem.total.0 as usize);
-        let free = bytes2_gb(mem.free.0 as usize);
-        let used = tot - free;
-        peak_tot_used_memory = peak_tot_used_memory.max(used);
+        sys.refresh_all();
+        now = Instant::now();
+        let tot_mem = bytes2_gb(sys.total_memory() as usize);
+        let tot_used_mem = bytes2_gb(sys.used_memory() as usize);
+
+        peak_tot_used_memory = peak_tot_used_memory.max(tot_used_mem);
         tracing::info!(
             "System Memory Info ::> TotMem: {}GB, Used: {}GB, Free: {}GB. PeakUsed: {}GB",
-            tot,
-            used,
-            free,
+            tot_mem,
+            tot_used_mem,
+            tot_mem - tot_used_mem,
             peak_tot_used_memory
         );
+        let num_cpus = sys.cpus().len();
+        let tot_cpu_usage: f32 = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum();
 
-        if let Ok(load_measure) = sys_stat.cpu_load() {
-            thread::sleep(Duration::from_secs(1));
-            match load_measure.done() {
-                Ok(all_core_loads) => {
-                    let num_cores = all_core_loads.len();
-                    let all_core_usage: f32 = all_core_loads
-                        .iter()
-                        .map(|single_core_load| (1.0 - single_core_load.idle) * 100.)
-                        .sum();
-                    let per_core_usage = all_core_usage / num_cores as f32;
-                    tracing::info!("System Cpu Load Info ::> num_cores: {}, AllCoreUsage: {:.1}%, PerCoreUsage: {:.1}%", 
-                        num_cores, all_core_usage, per_core_usage);
-                }
+        tracing::info!(
+            "System Cpu Load Info ::> NumCores: {}, AllCoreUsage: {:.1}%, PerCoreUsage: {:.1}%",
+            num_cpus,
+            tot_cpu_usage,
+            tot_cpu_usage / num_cpus as f32
+        );
 
-                Err(e) => tracing::warn!(
-                    "System Cpu load Info. get cpu load measure faield. msg: {:?}",
-                    e
-                ),
-            }
-        }
+        if let Some(p) = sys.process(Pid::from_u32(pid)) {
+            let cpu_usage = p.cpu_usage();
+            let process_mem = bytes2_gb(p.memory() as usize);
+            peak_process_used_memory = peak_process_used_memory.max(process_mem);
+            tracing::info!(
+                "{} Memory Info ::> Used: {}GB, PeakUsed: {}GB",
+                prog_name,
+                process_mem,
+                peak_process_used_memory
+            );
 
-        // logging SmcCore memory usage and cpu percentage infomation
-        if let Ok(ref mut monitored_process_) = monitored_process {
-            match monitored_process_.memory_info() {
-                Ok(mem) => {
-                    let used = bytes2_gb(mem.rss() as usize);
-                    peak_smc_core_used_memory = peak_smc_core_used_memory.max(used);
-                    tracing::info!(
-                        "{} Memory Info ::> Used: {}GB, PeakUsed: {}GB",
-                        prog_name,
-                        used,
-                        peak_smc_core_used_memory
-                    );
-                }
-                Err(err) => tracing::warn!("Failed to get memory info:{:?}", err),
-            }
-
-            monitored_process_.num_threads();
-
-            let _res = monitored_process_.cpu_percent();
-            thread::sleep(Duration::from_secs(1));
-            match monitored_process_.cpu_percent() {
-                Ok(percent_) => {
-                    let worker_threads_ =
-                        worker_threads.unwrap_or(monitored_process_.num_threads() as usize);
-                    let per_core_percent = percent_ / worker_threads_ as f32;
-                    tracing::info!("{} Cpu Load Info ::> NumThreads:{} CpuPercent: Tot:{:.1}%, PerCpuCore:{:.1}%", 
-                    prog_name, worker_threads_, percent_, per_core_percent)
-                }
-                Err(e) => tracing::warn!("Get {} CpuPercent error. msg: {:?}", prog_name, e),
-            }
+            tracing::info!(
+                "{} Cpu Load Info ::> CpuPercent: Tot:{:.1}%",
+                prog_name,
+                cpu_usage,
+            );
         }
     }
 }
