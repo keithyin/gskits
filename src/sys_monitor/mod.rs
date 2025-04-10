@@ -111,6 +111,8 @@ fn monitor(
     let mut now = Instant::now();
     let mut sys = sysinfo::System::new_all();
 
+    let worker_threads = worker_threads.unwrap_or(get_thread_count(pid).unwrap_or(0));
+
     loop {
         thread::sleep(Duration::from_secs(1));
 
@@ -164,10 +166,28 @@ fn monitor(
             );
 
             tracing::info!(
-                "{} Cpu Load Info ::> CpuPercent: Tot:{:.1}%",
+                "{} Cpu Load Info ::> CpuPercent: Tot:{:.1}%, NumThreads: {}, PerThread: {:.1}%",
                 prog_name,
                 cpu_usage,
+                worker_threads,
+                if worker_threads > 0 {
+                    cpu_usage / worker_threads as f32
+                } else {
+                    0.0
+                }
             );
         }
     }
+}
+
+pub fn get_thread_count(pid: u32) -> std::io::Result<usize> {
+    let procfs_path = format!("/proc/{}/task", pid);
+    let mut count = 0;
+    for entry in std::fs::read_dir(procfs_path)? {
+        let entry = entry?;
+        if entry.file_type()?.is_dir() {
+            count += 1;
+        }
+    }
+    Ok(count)
 }
