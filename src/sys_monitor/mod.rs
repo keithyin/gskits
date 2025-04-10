@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use sysinfo::{self, Pid, System};
+use sysinfo::{self, Pid};
 
 #[derive(Debug, PartialEq, Eq)]
 enum SysMonState {
@@ -18,7 +18,12 @@ enum SysMonState {
 
 /// System resources monitor.
 /// use tracing to log the resource info
-
+/// 
+/// use std::time::Duration;
+/// use gskits::sys_monitor::SysMon;
+/// let sys_mon = SysMon::new(Duration::from_secs(1), "test".to_string());
+/// sys_mon.start_monitor(None, None);
+/// 
 pub struct SysMon {
     state: Arc<Mutex<SysMonState>>,
     need_stop: Arc<AtomicBool>,
