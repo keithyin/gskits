@@ -111,8 +111,6 @@ fn monitor(
     let mut now = Instant::now();
     let mut sys = sysinfo::System::new_all();
 
-    let worker_threads = worker_threads.unwrap_or(get_thread_count(pid).unwrap_or(0));
-
     loop {
         thread::sleep(Duration::from_secs(1));
 
@@ -155,6 +153,8 @@ fn monitor(
         );
 
         if let Some(p) = sys.process(Pid::from_u32(pid)) {
+            let worker_threads_ = worker_threads.unwrap_or(get_thread_count(pid).unwrap_or(0));
+
             let cpu_usage = p.cpu_usage();
             let process_mem = bytes2_gb(p.memory() as usize);
             peak_process_used_memory = peak_process_used_memory.max(process_mem);
@@ -169,9 +169,9 @@ fn monitor(
                 "{} Cpu Load Info ::> CpuPercent: Tot:{:.1}%, NumThreads: {}, PerThread: {:.1}%",
                 prog_name,
                 cpu_usage,
-                worker_threads,
-                if worker_threads > 0 {
-                    cpu_usage / worker_threads as f32
+                worker_threads_,
+                if worker_threads_ > 0 {
+                    cpu_usage / worker_threads_ as f32
                 } else {
                     0.0
                 }
