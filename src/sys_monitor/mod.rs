@@ -127,6 +127,9 @@ fn monitor(
         }
 
         sys.refresh_all();
+        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+        sys.refresh_all();
+
         now = Instant::now();
         let tot_mem = bytes2_gb(sys.total_memory() as usize);
         let tot_used_mem = bytes2_gb(sys.used_memory() as usize);
