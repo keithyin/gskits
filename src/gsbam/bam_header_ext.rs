@@ -25,6 +25,23 @@ impl HeaderSQ {
     }
 }
 
+#[derive(Debug)]
+pub struct PgHeader {
+    pub id: Option<String>,
+    pub program_name: Option<String>,
+    pub program_version: Option<String>,
+    pub prev_program: Option<String>,
+    cmd_line: Option<String>,
+}
+
+impl PgHeader {
+    pub fn get_cmd_line(&self) -> Option<String> {
+        self.cmd_line
+            .as_ref()
+            .map(|line| line.split_whitespace().collect::<Vec<_>>().join(" "))
+    }
+}
+
 pub struct BamHeaderExt {
     header: Header,
     last_pg: Option<String>,
@@ -57,6 +74,25 @@ impl BamHeaderExt {
         self.last_pg.as_ref().map(|v| v.as_str())
     }
 
+    pub fn get_last_pg_header(&self) -> Option<PgHeader> {
+        let header = self.header.to_hashmap();
+        return if let Some(pg_info) = header.get("PG") {
+            if let Some(last) = pg_info.last() {
+                Some(PgHeader {
+                    id: last.get("ID").map(|item| item.to_string()),
+                    program_name: last.get("PN").map(|item| item.to_string()),
+                    program_version: last.get("VN").map(|item| item.to_string()),
+                    prev_program: last.get("PP").map(|item| item.to_string()),
+                    cmd_line: last.get("CL").map(|item| item.to_string()),
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+    }
+
     pub fn get_all_seqs_cached(&mut self) -> Option<&Vec<HeaderSQ>> {
         if self.all_seqs.is_none() {
             let header = self.header.to_hashmap();
@@ -81,5 +117,20 @@ impl BamHeaderExt {
 impl From<&HeaderView> for BamHeaderExt {
     fn from(value: &HeaderView) -> Self {
         BamHeaderExt::new(Header::from_template(value))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use rust_htslib::bam::{Header, Read};
+
+    use super::BamHeaderExt;
+
+    #[test]
+    fn test_header_ext() {
+        let bam_file = rust_htslib::bam::Reader::from_path("test_data/header_only.bam").unwrap();
+        let header = Header::from_template(bam_file.header());
+        let header_ext = BamHeaderExt::new(header);
+        println!("{:?}", header_ext.get_last_pg_header().map(|v| v.get_cmd_line()));
     }
 }
