@@ -221,7 +221,7 @@ impl<'a> BamRecordExt<'a> {
     }
 
     #[allow(unused)]
-    fn get_uint(&self, tag: &[u8]) -> Option<u32> {
+    pub fn get_uint(&self, tag: &[u8]) -> Option<u32> {
         self.bam_record.aux(tag).ok().and_then(|aux| match aux {
             Aux::U8(v) => Some(v as u32),
             Aux::U16(v) => Some(v as u32),
@@ -230,7 +230,7 @@ impl<'a> BamRecordExt<'a> {
         })
     }
 
-    fn get_float(&self, tag: &[u8]) -> Option<f32> {
+    pub fn get_float(&self, tag: &[u8]) -> Option<f32> {
         self.bam_record.aux(tag).ok().and_then(|aux| match aux {
             Aux::Float(v) => Some(v as f32),
             Aux::Double(v) => Some(v as f32),
@@ -238,7 +238,7 @@ impl<'a> BamRecordExt<'a> {
         })
     }
 
-    fn get_float_list(&self, tag: &[u8]) -> Option<Vec<f32>>{
+    pub fn get_float_list(&self, tag: &[u8]) -> Option<Vec<f32>>{
         self.bam_record.aux(tag).ok().and_then(|aux| {
             match aux {
                 Aux::ArrayFloat(v) => Some(v.iter().collect::<Vec<f32>>()),
@@ -247,7 +247,7 @@ impl<'a> BamRecordExt<'a> {
         })
     }
 
-    fn get_uint_list(&self, tag: &[u8]) -> Option<Vec<u32>> {
+    pub fn get_uint_list(&self, tag: &[u8]) -> Option<Vec<u32>> {
         self.bam_record.aux(tag).ok().and_then(|aux| match aux {
             Aux::ArrayU8(v) => Some(v.iter().map(|v| v as u32).collect::<Vec<u32>>()),
             Aux::ArrayU16(v) => Some(v.iter().map(|v| v as u32).collect::<Vec<u32>>()),
@@ -257,7 +257,7 @@ impl<'a> BamRecordExt<'a> {
     }
 
     #[allow(unused)]
-    fn get_int_list(&self, tag: &[u8]) -> Option<Vec<i32>> {
+    pub fn get_int_list(&self, tag: &[u8]) -> Option<Vec<i32>> {
         self.bam_record.aux(tag).ok().and_then(|aux| match aux {
             Aux::ArrayI8(v) => Some(v.iter().map(|v| v as i32).collect::<Vec<i32>>()),
             Aux::ArrayI16(v) => Some(v.iter().map(|v| v as i32).collect::<Vec<i32>>()),
