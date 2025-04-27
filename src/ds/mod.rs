@@ -4,6 +4,7 @@ use crate::gsbam::bam_record_ext::{BamRecord, BamRecordExt};
 pub mod region;
 /// common data structures
 
+#[derive(Debug, Default)]
 pub struct ReadInfo {
     pub name: String,
     pub seq: String,
@@ -17,41 +18,23 @@ pub struct ReadInfo {
     pub cr: Option<Vec<u8>>,
     pub be: Option<Vec<u32>>,
     pub nn: Option<Vec<u8>>,
+    pub wd: Option<Vec<u8>>, // linker width
+    pub sd: Option<Vec<u8>>, // standard devition
+    pub sp: Option<Vec<u8>>, // slope
 }
 
 impl ReadInfo {
     pub fn new_fa_record(name: String, seq: String) -> Self {
-        Self {
-            name: name,
-            seq: seq,
-            cx: None,
-            ch: None,
-            np: None,
-            rq: None,
-            qual: None,
-            dw: None,
-            ar: None,
-            cr: None,
-            be: None,
-            nn: None,
-        }
+        let mut res = Self::default();
+        res.name = name;
+        res.seq = seq;
+        res
     }
 
     pub fn new_fq_record(name: String, seq: String, qual: Vec<u8>) -> Self {
-        Self {
-            name: name,
-            seq: seq,
-            cx: None,
-            ch: None,
-            np: None,
-            rq: None,
-            qual: Some(qual),
-            dw: None,
-            ar: None,
-            cr: None,
-            be: None,
-            nn: None,
-        }
+        let mut res = ReadInfo::new_fa_record(name, seq);
+        res.qual = Some(qual);
+        res
     }
 
     pub fn from_bam_record(
@@ -84,16 +67,40 @@ impl ReadInfo {
 
         let cr = if tags.contains("cr") {
             record_ext
-            .get_cr()
-            .map(|v| v.into_iter().map(|v| v as u8).collect())
+                .get_cr()
+                .map(|v| v.into_iter().map(|v| v as u8).collect())
         } else {
             None
         };
 
         let nn = if tags.contains("nn") {
             record_ext
-            .get_nn()
-            .map(|v| v.into_iter().map(|v| v as u8).collect())
+                .get_nn()
+                .map(|v| v.into_iter().map(|v| v as u8).collect())
+        } else {
+            None
+        };
+
+        let wd = if tags.contains("wd") {
+            record_ext
+                .get_uint_list(b"wd")
+                .map(|v| v.into_iter().map(|v| v as u8).collect())
+        } else {
+            None
+        };
+
+        let sd = if tags.contains("sd") {
+            record_ext
+                .get_uint_list(b"sd")
+                .map(|v| v.into_iter().map(|v| v as u8).collect())
+        } else {
+            None
+        };
+
+        let sp = if tags.contains("sp") {
+            record_ext
+                .get_uint_list(b"sd")
+                .map(|v| v.into_iter().map(|v| v as u8).collect())
         } else {
             None
         };
@@ -110,7 +117,10 @@ impl ReadInfo {
             ar: ar,
             cr: cr,
             be: record_ext.get_be(),
-            nn: nn
+            nn: nn,
+            wd: wd,
+            sd: sd,
+            sp: sp,
         }
     }
 }
@@ -150,8 +160,5 @@ pub fn idx2name_and_seq(read_infos: &Vec<ReadInfo>) -> HashMap<usize, (&str, &st
 mod test {
 
     #[test]
-    fn test_read_info() {
-        
-
-    }
+    fn test_read_info() {}
 }
