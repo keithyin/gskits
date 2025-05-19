@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rust_htslib::bam::{Header, HeaderView};
 
 #[derive(Debug, Clone)]
@@ -55,6 +57,28 @@ impl BamHeaderExt {
             last_pg: None,
             all_seqs: None,
         }
+    }
+
+    pub fn get_rg_rn_mapping(&self) -> Option<HashMap<String, String>> {
+        let header = self.header.to_hashmap();
+        return if let Some(rg_infos) = header.get("RG") {
+            Some(
+                rg_infos
+                    .iter()
+                    .map(|rg| {
+                        (
+                            rg.get("ID").expect("no ID found in RG header").to_string(),
+                            rg.get("RN")
+                                .or(rg.get("rn"))
+                                .expect("no RN/rn found in RG header")
+                                .to_string(),
+                        )
+                    })
+                    .collect(),
+            )
+        } else {
+            None
+        };
     }
 
     pub fn get_last_pg_from_bam_header_cached(&mut self) -> Option<&str> {
@@ -131,6 +155,17 @@ mod test {
         let bam_file = rust_htslib::bam::Reader::from_path("test_data/header_only.bam").unwrap();
         let header = Header::from_template(bam_file.header());
         let header_ext = BamHeaderExt::new(header);
-        println!("{:?}", header_ext.get_last_pg_header().map(|v| v.get_cmd_line()));
+        println!(
+            "{:?}",
+            header_ext.get_last_pg_header().map(|v| v.get_cmd_line())
+        );
+    }
+
+    #[test]
+    fn test_rg_rn_mapping() {
+        let bam_file = rust_htslib::bam::Reader::from_path("test_data/header_only.bam").unwrap();
+        let header = Header::from_template(bam_file.header());
+        let header_ext = BamHeaderExt::new(header);
+        println!("{:?}", header_ext.get_rg_rn_mapping())
     }
 }
