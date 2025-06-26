@@ -547,7 +547,7 @@ checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
 name = "gskits"
-version = "0.15.14"
+version = "0.15.15"
 dependencies = [
  "anyhow",
  "bio",

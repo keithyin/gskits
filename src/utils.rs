@@ -42,6 +42,7 @@ where
         .collect::<Vec<_>>()
 }
 
+#[derive(Debug, Clone)]
 pub struct Range<T> {
     range: Vec<(T, T)>,
 }
