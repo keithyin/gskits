@@ -23,6 +23,7 @@ fn transpose_blocked_benchmark(c: &mut Criterion) {
         Some(64),
         Some(128),
         Some(256),
+        Some(512),
     ] {
         group.bench_function(format!("{:?}", block_size), |b| {
             b.iter(|| {
