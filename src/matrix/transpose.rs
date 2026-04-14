@@ -29,6 +29,22 @@ where
     transposed
 }
 
+pub fn transpose_withoutput<T>(matrix: &Vec<T>, transposed: &mut Vec<T>, dim0: usize, dim1: usize)
+where
+    T: Sized + Default + Clone + Copy,
+{
+    // 创建一个新的 Vec 用于存储转置后的矩阵
+
+    // 遍历原矩阵并填充转置后的矩阵
+    for i in 0..dim0 {
+        for j in 0..dim1 {
+            unsafe {
+                *transposed.get_unchecked_mut(j * dim0 + i) = *matrix.get_unchecked(i * dim1 + j);
+            }
+        }
+    }
+}
+
 pub fn transpose_blocked<T>(
     matrix: &Vec<T>,
     dim0: usize,
@@ -220,21 +236,13 @@ pub fn mm256_odd_interleave_epi8(mut a: __m256i, mut b: __m256i) -> __m256i {
 
 fn avx2_transopose_u8_16x16_64(rows: [__m256i; 8]) -> [__m256i; 8] {
     let mut result_rows = [MaybeUninit::uninit(); 8];
-    result_rows
-        .iter_mut()
-        .enumerate()
-        .take(4)
-        .for_each(|(idx, v)| {
+    result_rows.iter_mut().enumerate().for_each(|(idx, v)| {
+        if idx < 4 {
             v.write(unsafe { _mm256_unpacklo_epi64(rows[idx], rows[idx + 4]) });
-        });
-
-    result_rows
-        .iter_mut()
-        .enumerate()
-        .skip(4)
-        .for_each(|(idx, v)| {
+        } else {
             v.write(unsafe { _mm256_unpackhi_epi64(rows[idx - 4], rows[idx]) });
-        });
+        }
+    });
 
     unsafe { std::mem::transmute(result_rows) }
 }
@@ -267,11 +275,23 @@ fn avx2_transopose_u8_16x16_8(rows: [__m256i; 8]) -> [__m256i; 8] {
     let mut result_rows = [MaybeUninit::uninit(); 8];
     result_rows.iter_mut().enumerate().for_each(|(idx, v)| {
         let hi_2_lo = unsafe { _mm256_permute2x128_si256::<0x01>(rows[idx], rows[idx]) };
-        let res = mm256_even_interleave_epi8(rows[idx], hi_2_lo);
+        let tmp1 = mm256_even_interleave_epi8(rows[idx], hi_2_lo);
+        let tmp2 = mm256_odd_interleave_epi8(rows[idx], hi_2_lo);
+        let res = unsafe { _mm256_permute2x128_si256::<0b00100000>(tmp1, tmp2) };
         v.write(res);
     });
 
     unsafe { std::mem::transmute(result_rows) }
+}
+
+fn avx_transpose_u8_store(rows: [__m256i; 8], output: &mut [&mut [u8]]) {
+    rows.into_iter().enumerate().for_each(|(idx, v)| unsafe {
+        _mm256_storeu2_m128i(
+            output[idx * 2 + 1].as_mut_ptr() as *mut __m128i,
+            output[idx * 2].as_mut_ptr() as *mut __m128i,
+            rows[idx],
+        );
+    });
 }
 
 pub fn avx2_transopose_u8_16x16(input: &[&[u8]], output: &mut [&mut [u8]]) {
@@ -288,27 +308,21 @@ pub fn avx2_transopose_u8_16x16(input: &[&[u8]], output: &mut [&mut [u8]]) {
     let rows: [__m256i; 8] = unsafe { std::mem::transmute(origin_rows) };
 
     let rows = avx2_transopose_u8_16x16_64(rows);
+    // avx_transpose_u8_store(rows, output);
+
+    // println!("out:\n{:?}", output);
     let rows = avx2_transopose_u8_16x16_32(rows);
+    // avx_transpose_u8_store(rows, output);
+
+    // println!("out:\n{:?}", output);
     let rows = avx2_transopose_u8_16x16_16(rows);
+    // avx_transpose_u8_store(rows, output);
+
+    // println!("out:\n{:?}", output);
     let rows = avx2_transopose_u8_16x16_8(rows);
+    avx_transpose_u8_store(rows, output);
 
-    // let mut tmp2_rows =
-
-    unsafe {
-        _mm256_storeu2_m128i(
-            output[1].as_mut_ptr() as *mut __m128i,
-            output[0].as_mut_ptr() as *mut __m128i,
-            rows[0],
-        );
-
-        _mm256_storeu2_m128i(
-            output[3].as_mut_ptr() as *mut __m128i,
-            output[2].as_mut_ptr() as *mut __m128i,
-            rows[1],
-        );
-    }
-
-    println!("out:{:?}", output);
+    // println!("out:\n{:?}", output);
 }
 
 #[cfg(test)]
