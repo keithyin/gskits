@@ -76,8 +76,6 @@ fn transpose_benchmark_transpose_16x16_avx2(c: &mut Criterion) {
         .map(|v| v.as_mut_slice())
         .collect::<Vec<_>>();
 
-    avx2_transopose_u8_16x16(&value2, &mut output2);
-
     c.bench_function("transpose_16x16_avx2", |b| {
         b.iter(|| {
             transpose::avx2_transopose_u8_16x16(black_box(&value2), black_box(&mut output2));
@@ -85,11 +83,47 @@ fn transpose_benchmark_transpose_16x16_avx2(c: &mut Criterion) {
     });
 }
 
+fn transpose_benchmark_transpose_16x16_avx2_v2(c: &mut Criterion) {
+    let value = (0..(16 * 16))
+        .into_iter()
+        .map(|v| v as u8)
+        .collect::<Vec<u8>>();
+    let value2 = (0..16)
+        .into_iter()
+        .map(|idx| &value[idx * 16..(idx + 1) * 16])
+        .collect::<Vec<&[u8]>>();
+    let mut output = (0..16)
+        .into_iter()
+        .map(|v| vec![0_u8; 16])
+        .collect::<Vec<_>>();
+    let mut output2 = output
+        .iter_mut()
+        .map(|v| v.as_mut_slice())
+        .collect::<Vec<_>>();
+
+    c.bench_function("transpose_16x16_avx2_v2", |b| {
+        b.iter(|| {
+            unsafe {
+                transpose::avx2_transopose_u8_16x16_v2(black_box(&value2), black_box(&mut output2))
+            };
+        })
+    });
+}
+
+// criterion_group!(
+//     benches,
+//     transpose_benchmark,
+//     transpose_blocked_benchmark,
+//     transpose_benchmark_transpose_16x16,
+//     transpose_benchmark_transpose_16x16_avx2
+// );
+
 criterion_group!(
     benches,
-    transpose_benchmark,
-    transpose_blocked_benchmark,
+    // transpose_benchmark,
+    // transpose_blocked_benchmark,
     transpose_benchmark_transpose_16x16,
-    transpose_benchmark_transpose_16x16_avx2
+    transpose_benchmark_transpose_16x16_avx2,
+    transpose_benchmark_transpose_16x16_avx2_v2
 );
 criterion_main!(benches);
